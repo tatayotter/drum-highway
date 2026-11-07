@@ -165,6 +165,7 @@
   a.btnlink { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 8px; text-decoration: none; font-weight: 600;
     background: var(--accent); color: var(--accent-ink); }
   a.btnlink:hover { background: var(--accent-hi); }
+  a.lnk { color: var(--accent-hi); font-weight: 600; }
   #nudgeRow button { flex: 1; padding: 0 6px; }
   @media (max-width: 1100px) { aside { width: 300px; } .field.scroll { margin-left: 0; } }
   @media (max-width: 760px) {
@@ -310,6 +311,12 @@
       </div>
       <div class="btns"><button id="calibBtn"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate latency</span></button></div>
       <p class="hint" id="calibInfo">Calibrate plays 16 clicks. Hit any pad (or key) exactly with each click you hear, and the timing offset is set for you.</p>
+      <h2>Companion app</h2>
+      <div class="rows">
+        <div class="row"><label class="sw"><input id="useComp" type="checkbox"> Use Drum Highway Companion</label></div>
+      </div>
+      <p class="hint" id="compInfo">Optional Windows app that plays your drum samples with very low latency (ASIO / WASAPI) and sends your hits here. Only needed if you want the computer to make the drum sounds.</p>
+      <p class="hint"><a class="lnk" href="https://github.com/tatayotter/drum-highway/releases/download/companion/DrumHighwayCompanion.exe">Download the Companion for Windows</a></p>
       <h2>Pad mapping</h2>
       <p class="hint">MIDI note numbers your kit sends for each lane, comma separated. Click <b>Learn</b> then hit the pad to add its note. Saved in this browser.</p>
       <table id="mapTable"></table>
@@ -1594,7 +1601,7 @@ function midiToSong(mid, name) {
   function onHit(lane, vel = 100, note = null) {
     laneFlash[lane] = performance.now();
     if (calib) { calibHit(); return; }
-    if ($('soundOnHit').checked) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
+    if ($('soundOnHit').checked && !compSound) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
     if (!running) return;
     const latency = (+$('latency').value || 0) / 1000;
     const t = now() - startAt - latency;
@@ -1642,10 +1649,42 @@ function midiToSong(mid, name) {
       log(`hi-hat pedal CC4 = ${d2}`);
     }
   }
+  // ---------- Drum Highway Companion (local low-latency sound app) ----------
+  // The Companion opens the kit itself, plays the sounds, and forwards each hit here over ws://127.0.0.1:21928.
+  // We only try to connect when the switch is on (browsers may ask permission to reach apps on this computer).
+  const COMP_KEY = 'drumHighway.companion.v1';
+  let comp = null, compSound = false, compTimer = null, compOpen = false;
+  const compLive = () => compOpen;
+  function compInfo(txt) { $('compInfo').textContent = txt; }
+  function compConnect() {
+    clearTimeout(compTimer);
+    if (!$('useComp').checked || comp) return;
+    try { comp = new WebSocket('ws://127.0.0.1:21928'); } catch (e) { comp = null; compTimer = setTimeout(compConnect, 4000); return; }
+    comp.onopen = () => { compOpen = true; compInfo('Connected. Your hits come from the Companion.'); midiStatus.textContent = 'Companion connected'; midiStatus.className = 'on'; };
+    comp.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.t === 'hello') { compSound = !!m.sound; compInfo(`Connected to ${m.app} ${m.version}. ` + (compSound ? 'It plays the drum sounds, so the app stays quiet on hits.' : 'Its drum sounds are off, so this app plays them (if “Play sounds when I hit” is on).')); }
+      else if (m.t === 'hit') onMidiMessage({ data: [0x99, m.note, m.vel] });
+      else if (m.t === 'cc') onMidiMessage({ data: [0xb9, m.cc, m.value] });
+    };
+    comp.onclose = () => {
+      const was = compOpen; comp = null; compOpen = false; compSound = false;
+      if (!$('useComp').checked) return;
+      compInfo(was ? 'Lost the Companion. Reconnecting…' : 'Companion not found. Start Drum Highway Companion on this computer; it will connect automatically.');
+      if (was) selectInput(inputSel.value);
+      compTimer = setTimeout(compConnect, 3000);
+    };
+  }
+  $('useComp').onchange = () => {
+    try { localStorage.setItem(COMP_KEY, $('useComp').checked ? '1' : '0'); } catch (e) {}
+    if ($('useComp').checked) { compInfo('Looking for the Companion…'); compConnect(); }
+    else { clearTimeout(compTimer); if (comp) comp.close(); comp = null; compOpen = false; compSound = false; compInfo('Companion off.'); selectInput(inputSel.value); }
+  };
+  try { if (localStorage.getItem(COMP_KEY) === '1') { $('useComp').checked = true; setTimeout(compConnect, 300); } } catch (e) {}
   function selectInput(id) {
     if (currentInput) currentInput.onmidimessage = null;
     currentInput = id && midi ? midi.inputs.get(id) : null;
-    if (currentInput) { currentInput.onmidimessage = onMidiMessage; midiStatus.textContent = 'Listening: ' + currentInput.name; midiStatus.className = 'on'; }
+    if (currentInput) { currentInput.onmidimessage = (e) => { if (!compLive()) onMidiMessage(e); }; midiStatus.textContent = 'Listening: ' + currentInput.name; midiStatus.className = 'on'; }
     else { midiStatus.textContent = midi ? 'No input selected' : 'MIDI not connected'; midiStatus.className = ''; }
   }
   function refreshInputs() {

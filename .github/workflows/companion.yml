@@ -1,0 +1,36 @@
+name: Build Companion
+
+on:
+  push:
+    branches: [main]
+    paths: ['companion/**', '.github/workflows/companion.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pyinstaller sounddevice soundfile numpy python-rtmidi websockets
+      - name: Check ASIO support is available
+        run: python -c "import os; os.environ['SD_ENABLE_ASIO']='1'; import sounddevice as sd; print([a['name'] for a in sd.query_hostapis()])"
+      - name: Check the app imports
+        working-directory: companion
+        run: python -c "import drum_companion as d; e=d.Engine(); e.reload({}); print('ok', sorted(e.samples))"
+      - name: Build exe
+        working-directory: companion
+        run: pyinstaller --noconfirm --onefile --windowed --name DrumHighwayCompanion --collect-all _sounddevice_data --collect-all _soundfile_data --collect-all rtmidi drum_companion.py
+      - name: Publish download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete companion --yes --cleanup-tag || true
+          gh release create companion companion/dist/DrumHighwayCompanion.exe --title "Drum Highway Companion" --notes "Low-latency drum sounds for Drum Highway on Windows. Download DrumHighwayCompanion.exe and run it. Built from ${GITHUB_SHA::7}."
