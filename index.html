@@ -102,6 +102,29 @@
   .stepper input { border: 0; border-radius: 0; height: 32px; width: 52px; text-align: center; background: transparent; padding: 0; font-weight: 700; }
   .stepper input::-webkit-inner-spin-button { display: none; }
   .field.scroll { margin-left: auto; }
+  .bpmread { height: 34px; display: flex; align-items: center; font: 700 15px var(--mono); padding: 0 4px; }
+  /* course */
+  .lesson { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 6px; }
+  .lesson .kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .lesson h3 { margin: 3px 0 6px; font-size: 16px; }
+  .lesson p { margin: 0 0 8px; color: #c9cdd6; font-size: 12.5px; }
+  .req { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 20px; background: var(--bg); border: 1px solid var(--line-2); color: var(--muted); }
+  .pill.ok { color: var(--good); border-color: rgba(61,220,151,.4); }
+  .pill.exam { color: var(--ok); border-color: rgba(242,193,78,.4); }
+  .grades { display: grid; gap: 6px; margin-top: 4px; }
+  .grade { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 9px 11px; border-radius: 9px;
+    background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; }
+  .grade:hover { border-color: var(--line-2); }
+  .grade.cur { border-color: var(--accent); }
+  .grade.locked { opacity: .5; }
+  .grade b { font-weight: 600; } .grade small { color: var(--muted); font-size: 11.5px; }
+  .grade .bar { grid-column: 1 / -1; height: 4px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+  .grade .bar i { display: block; height: 100%; background: var(--accent); }
+  .mark { font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+  .mark.Pass { background: rgba(124,140,255,.18); color: var(--accent-hi); }
+  .mark.Merit { background: rgba(242,193,78,.18); color: var(--ok); }
+  .mark.Distinction { background: rgba(61,220,151,.18); color: var(--good); }
   .field.scroll input { height: 34px; width: 130px; }
 
   /* ---------- layout ---------- */
@@ -186,6 +209,7 @@
   <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.5L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.5l1.7-2M20 20v-4.5h-4.5"/></symbol>
   <symbol id="i-drum" viewBox="0 0 24 24"><ellipse cx="12" cy="8" rx="8" ry="3"/><path d="M4 8v8c0 1.7 3.6 3 8 3s8-1.3 8-3V8M7 10.6v6.6M12 11v8M17 10.6v6.6"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.5c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3V11M21.5 9v5.5"/></symbol>
   <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0"/></symbol>
 </svg>
 
@@ -195,7 +219,7 @@
       <rect width="28" height="28" rx="8" fill="url(#lg)"/><path d="M11 5 8 20M14 5v15M17 5l3 15" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/><rect x="5" y="18.5" width="18" height="3.4" rx="1.7" fill="#fff"/></svg>
     <span>Drum<b>Highway</b></span>
   </div>
-  <nav class="seg" id="modeSeg"><button data-mode="songs"><svg class="ic"><use href="#i-note"/></svg>Songs</button><button data-mode="drills"><svg class="ic"><use href="#i-sticks"/></svg>Drills</button></nav>
+  <nav class="seg" id="modeSeg"><button data-mode="songs"><svg class="ic"><use href="#i-note"/></svg>Songs</button><button data-mode="drills"><svg class="ic"><use href="#i-sticks"/></svg>Drills</button><button data-mode="course"><svg class="ic"><use href="#i-cap"/></svg>Course</button></nav>
   <div class="spacer"></div>
   <div class="device" title="Your e-drum kit">
     <span class="dot"></span><span id="midiStatus">MIDI not connected</span>
@@ -221,6 +245,13 @@
     <div class="field" id="bpmWrap"><span>BPM</span><div class="stepper"><button type="button" data-bpm="-5" title="−5 BPM">−</button><input id="bpm" type="number" min="30" max="260" value="80"><button type="button" data-bpm="5" title="+5 BPM">+</button></div></div>
     <label class="field"><span>Length</span><select id="drillLen"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option><option value="loop">∞ Loop</option></select></label>
   </div>
+  <div class="fields" id="courseCtl" hidden>
+    <label class="field"><span>Grade</span><select id="cGrade"></select></label>
+    <label class="field grow"><span>Lesson</span><select id="cLesson"></select></label>
+    <span class="sep"></span>
+    <label class="field"><span>Practice tempo</span><select id="cTempo"><option value="60">60%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option><option value="100" selected>100% (to pass)</option></select></label>
+    <div class="field"><span>BPM</span><div id="cBpm" class="bpmread">–</div></div>
+  </div>
   <input id="libInput" type="file" webkitdirectory multiple hidden>
   <input id="fileInput" type="file" accept=".mid,.midi,audio/midi" hidden>
   <label class="field scroll"><span>Scroll speed</span><input id="speed" type="range" min="200" max="900" value="450"></label>
@@ -244,6 +275,15 @@
     <div class="panel" data-panel="practice">
       <div class="info" id="songInfo">Built-in practice pattern.</div>
       <div class="btns" id="starFind" hidden><a id="starLink" class="btnlink" target="_blank" rel="noopener"><svg class="ic"><use href="#i-file"/></svg>Find this song's MIDI</a><button id="starLib" class="ghost"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Set MIDI library</span></button></div>
+      <div id="courseSide" hidden>
+        <div class="lesson" id="cCard"></div>
+        <div class="btns"><button id="cNext" class="primary" hidden><span class="t">Next lesson</span></button></div>
+        <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the lesson (demo)</label></div></div>
+        <h2>Your course</h2>
+        <div class="grades" id="cGrades"></div>
+        <div class="rows"><div class="row"><label class="sw"><input id="cUnlock" type="checkbox"> Unlock every grade (for experienced players)</label></div></div>
+        <p class="hint">Pass each lesson at full tempo to unlock the next. Each grade ends with a three-piece exam marked Pass, Merit or Distinction, and passing it opens the next grade. Progress is saved in this browser.</p>
+      </div>
       <div id="drillSide" hidden>
         <div class="rows"><div class="row"><label class="sw"><input id="hearDrill" type="checkbox"> Hear the drill (demo)</label></div></div>
         <h2>Speed trainer</h2>
@@ -740,6 +780,133 @@ function midiToSong(mid, name) {
     D('Triplets & shuffles', 3, [60, 100], 'Triplets around the kit', 'One triplet per drum: snare, tom 1, tom 2, floor tom. Keep them even as you move.', stickSeq('R L R R@t1 L@t1 R@t1 R@t2 L@t2 R@t2 R@t3 L@t3 R@t3', 'snare', 12)),
   ];
   const drillCats = [...new Set(DRILLS.map(d => d.cat))];
+
+  // ===================== Course: graded lessons like a music school =====================
+  // Each grade: lessons (pass at 85% at the target tempo, in order) then a three-piece exam (16 bars, 80%+).
+  // Exam mark from the average of the pieces: Pass 80%, Merit 88%, Distinction 95%.
+  const R = 'Rudiments', G = 'Grooves', F = 'Fills', K = 'Kick & independence', TM = 'Timing', TO = 'Toms', SK = 'Sticking on the kit', TS = 'Triplets & shuffles';
+  const COURSE_DEF = [
+    { name: 'Debut', title: 'First steps', goal: 'Keep a steady pulse, play even 8th notes and your first rock beat.',
+      lessons: [[TM, 'Quarter-note pulse (gap click)', 70], [R, 'Single strokes (8ths)', 70], [G, 'Basic rock (quarter hats)', 70], [G, '8th-note rock', 70],
+        [TO, 'Snare to tom 1 (8ths)', 70], [F, 'Quarter-note crash landing', 70], [TM, '8th notes (gap click)', 70]],
+      exam: [[G, '8th-note rock', 80], [G, '8th rock with fills', 70], [R, 'Single strokes (8ths)', 90]] },
+    { name: 'Grade 1', title: 'Rock foundations', goal: '16th-note hands, your first rudiments, fills around the toms and the shuffle feel.',
+      lessons: [[R, 'Single strokes (16ths)', 70], [R, 'Double strokes (16ths)', 60], [R, 'Single paradiddle', 70], [K, 'Kick 8ths under quarter hats', 80],
+        [K, 'Open hat on the "&" of 4', 80], [F, '8th-note tom fill', 80], [TO, 'Around the toms (8ths)', 80], [G, 'Motown (snare on every beat)', 110],
+        [TS, 'Triplet singles', 70], [TS, 'Basic shuffle', 80]],
+      exam: [[G, '8th rock with fills', 90], [R, 'Single paradiddle', 90], [TS, 'Basic shuffle', 90]] },
+    { name: 'Grade 2', title: 'Grooves & dynamics', goal: '16th hats, half-time, ghost notes and fills that start off the beat.',
+      lessons: [[G, '16th-note hats', 70], [G, 'Half-time', 80], [K, 'Kick variations', 80], [R, 'Accents & ghost notes', 70], [F, 'Fill starting on the "&"', 80],
+        [F, 'One-beat fill', 80], [TM, '16th notes (gap click)', 80], [G, 'Disco (open hat on the &)', 110], [SK, 'Singles fill (bar 4)', 80],
+        [TS, 'Accent the beat in triplets', 80], [TS, '12/8 slow blues', 70]],
+      exam: [[G, 'Ride groove', 90], [F, '16th tom tour', 80], [G, 'Disco (open hat on the &)', 120]] },
+    { name: 'Grade 3', title: 'Rudiments on the kit', goal: 'Rolls and paradiddle variations, reggae and train beats, and triplet fills.',
+      lessons: [[R, 'Five-stroke roll', 70], [R, 'Reverse paradiddle', 80], [R, 'Paradiddle inversions', 70], [K, 'Kick doubles', 80], [G, 'One-drop (reggae)', 80],
+        [G, 'Train beat', 130], [SK, 'Paradiddle fill (bar 4)', 80], [TO, 'Around the toms (16ths)', 90], [TM, 'Click on 2 & 4 only', 90],
+        [TS, 'Shuffle with a triplet fill', 90], [TS, 'Triplet doubles', 80]],
+      exam: [[SK, 'Paradiddle groove', 90], [F, 'Snare build-up', 90], [TS, 'Shuffle with ghost notes', 100]] },
+    { name: 'Grade 4', title: 'Funk & feel', goal: 'Six-stroke and double paradiddles, ghost-note and linear grooves, groups of three.',
+      lessons: [[R, 'Six-stroke roll', 80], [R, 'Double paradiddle', 80], [R, 'Paradiddle-diddle', 80], [K, 'Kick on the "e" and "a"', 80], [G, 'Ghost-note groove', 80],
+        [G, 'Linear groove', 80], [F, 'Groups-of-three fill', 80], [TM, 'Offbeat 8ths only', 90], [SK, 'Six-stroke roll: crash accents', 80],
+        [TS, 'Paradiddle-diddle', 90], [SK, 'Doubles down the toms (fill)', 90]],
+      exam: [[G, 'Funk 16ths', 90], [F, 'Hands & kick fill', 80], [TS, 'Half-time shuffle (Purdie style)', 80]] },
+    { name: 'Grade 5', title: 'Advanced control', goal: 'Seven-stroke rolls, ostinatos, odd groupings and Bonham-style triplets.',
+      lessons: [[R, 'Seven-stroke roll', 80], [R, 'Single-double mix', 90], [R, 'Accents in 3s', 80], [K, 'Kick 16th bursts', 80], [K, 'Ostinato: ride + kick', 75],
+        [G, 'Bossa nova (straight)', 110], [TM, '"e" and "a" only', 80], [TM, 'Gap click 16ths with accents in 3s', 80], [TO, 'Sixes around the kit', 80],
+        [TS, 'Bonham triplets', 90], [TS, 'Triplets around the kit', 80], [SK, 'Paradiddle-diddle fill (bar 4)', 90]],
+      exam: [[G, 'Funk 16ths', 105], [G, 'Linear groove', 100], [TS, 'Bonham triplets', 100]] },
+  ];
+  const LESSON_NEED = 0.85, EXAM_NEED = 0.8;
+  const COURSE = COURSE_DEF.map((g, gi) => ({ ...g, gi, items: [
+    ...g.lessons.map(([cat, name, bpm], i) => ({ id: `${gi}:${i}`, gi, n: i + 1, exam: false, cat, name, bpm, bars: 8, need: LESSON_NEED })),
+    ...g.exam.map(([cat, name, bpm], i) => ({ id: `${gi}:e${i}`, gi, n: i + 1, exam: true, cat, name, bpm, bars: 16, need: EXAM_NEED })),
+  ] }));
+  COURSE.forEach(g => g.items.forEach(L => { L.drill = DRILLS.find(d => d.cat === L.cat && d.name === L.name); if (!L.drill) console.warn('Course: missing drill', L.cat, L.name); }));
+  const COURSE_KEY = 'drumHighway.course.v1';
+  let cProg = { best: {}, pos: '0:0', unlock: false };
+  try { Object.assign(cProg, JSON.parse(localStorage.getItem(COURSE_KEY) || '{}')); } catch (e) {}
+  const saveCourse = () => { try { localStorage.setItem(COURSE_KEY, JSON.stringify(cProg)); } catch (e) {} };
+  const findItem = (id) => { for (const g of COURSE) for (const L of g.items) if (L.id === id) return L; return null; };
+  const passed = (L) => (cProg.best[L.id] || 0) >= L.need;
+  const gradeLessons = (g) => g.items.filter(L => !L.exam), gradeExam = (g) => g.items.filter(L => L.exam);
+  const gradeDone = (g) => gradeExam(g).every(passed);
+  function gradeMark(g) {
+    if (!gradeDone(g)) return null;
+    const avg = gradeExam(g).reduce((a, L) => a + cProg.best[L.id], 0) / gradeExam(g).length;
+    return avg >= 0.95 ? 'Distinction' : avg >= 0.88 ? 'Merit' : 'Pass';
+  }
+  const gradeOpen = (g) => cProg.unlock || g.gi === 0 || gradeDone(COURSE[g.gi - 1]);
+  function itemOpen(L) {
+    const g = COURSE[L.gi]; if (!gradeOpen(g)) return false; if (cProg.unlock) return true;
+    const idx = g.items.indexOf(L);
+    return idx === 0 || passed(g.items[idx - 1]);
+  }
+  function curLesson() { return findItem(cProg.pos) || COURSE[0].items[0]; }
+  const courseBpm = () => Math.round(curLesson().bpm * (+$('cTempo').value || 100) / 100);
+  // first lesson in a grade that isn't passed yet (or the last one)
+  const nextIn = (g) => g.items.find(L => itemOpen(L) && !passed(L)) || g.items.filter(itemOpen).pop() || g.items[0];
+  function selectLesson(id) {
+    if (running) stop();
+    cProg.pos = id; saveCourse(); trainerMsg = ''; $('cTempo').value = '100';
+    refreshSourceUI();
+  }
+  function courseResult(acc) {
+    const L = curLesson(), pct = Math.round(acc * 100), tempo = +$('cTempo').value;
+    if (tempo < 100) return acc >= L.need ? `${pct}% at ${tempo}% tempo. Now try it faster: passing counts at full tempo.` : `${pct}% at ${tempo}% tempo. Keep going!`;
+    const g = COURSE[L.gi], wasDone = gradeDone(g);
+    if (acc > (cProg.best[L.id] || 0)) { cProg.best[L.id] = acc; saveCourse(); }
+    let msg;
+    if (acc < L.need) msg = `${pct}%: you need ${Math.round(L.need * 100)}% to pass. Try again, or practise slower first.`;
+    else if (!wasDone && gradeDone(g)) msg = `🎓 ${g.name} passed with ${gradeMark(g)}! ${COURSE[g.gi + 1] ? COURSE[g.gi + 1].name + ' is open.' : 'You finished the course!'}`;
+    else msg = L.exam ? `✓ Exam piece passed with ${pct}%!` : `✓ Lesson passed with ${pct}%!`;
+    renderCourse();
+    return msg;
+  }
+  function renderCourse() {
+    const L = curLesson(), g = COURSE[L.gi];
+    const gs = $('cGrade'); gs.innerHTML = '';
+    COURSE.forEach(gr => { const m = gradeMark(gr); const o = new Option(`${gr.name}: ${gr.title}${m ? ' ✓' : ''}`, gr.gi); o.disabled = !gradeOpen(gr); gs.add(o); });
+    gs.value = String(L.gi);
+    const ls = $('cLesson'); ls.innerHTML = '';
+    const og1 = document.createElement('optgroup'); og1.label = 'Lessons';
+    const og2 = document.createElement('optgroup'); og2.label = 'Exam';
+    for (const it of g.items) {
+      const st = passed(it) ? '✓' : itemOpen(it) ? '•' : '🔒';
+      const o = new Option(`${st} ${it.exam ? 'Exam ' + it.n : it.n + '.'} ${it.name}`, it.id); o.disabled = !itemOpen(it);
+      (it.exam ? og2 : og1).appendChild(o);
+    }
+    ls.append(og1, og2); ls.value = L.id;
+    $('cBpm').textContent = courseBpm() + (+$('cTempo').value < 100 ? ` / ${L.bpm}` : '');
+    const best = cProg.best[L.id];
+    const total = g.items.filter(x => !x.exam).length;
+    $('cCard').innerHTML = `<div class="kicker">${g.name} · ${L.exam ? `Exam piece ${L.n} of 3` : `Lesson ${L.n} of ${total}`}</div>
+      <h3></h3><p class="d"></p>
+      <div class="req"><span class="pill ${L.exam ? 'exam' : ''}">Pass: ${Math.round(L.need * 100)}% at ${L.bpm} BPM</span><span class="pill">${L.bars} bars</span>
+      <span class="pill ${passed(L) ? 'ok' : ''}">${best ? (passed(L) ? '✓ ' : '') + 'Best ' + Math.round(best * 100) + '%' : 'Not played yet'}</span></div>`;
+    $('cCard').querySelector('h3').textContent = L.name;
+    $('cCard').querySelector('.d').textContent = L.drill ? L.drill.desc : '';
+    const nx = passed(L) ? nextIn(g) : null, nextGrade = gradeDone(g) && COURSE[g.gi + 1];
+    $('cNext').hidden = !(nx && nx !== L) && !nextGrade;
+    btnText('cNext', nx && nx !== L ? (nx.exam ? 'Go to the exam' : 'Next lesson') : nextGrade ? `Start ${nextGrade.name}` : 'Next');
+    $('cNext').onclick = () => selectLesson(nx && nx !== L ? nx.id : nextIn(nextGrade).id);
+    const box = $('cGrades'); box.innerHTML = '';
+    for (const gr of COURSE) {
+      const les = gradeLessons(gr), done = les.filter(passed).length, ex = gradeExam(gr).filter(passed).length, m = gradeMark(gr);
+      const el = document.createElement('div');
+      el.className = 'grade' + (gr === g ? ' cur' : '') + (gradeOpen(gr) ? '' : ' locked');
+      el.innerHTML = `<div><b></b><br><small>${gradeOpen(gr) ? `${done}/${les.length} lessons · exam ${ex}/3` : '🔒 Pass the previous exam to open'}</small></div>
+        <div>${m ? `<span class="mark ${m}">${m}</span>` : ''}</div><div class="bar"><i style="width:${Math.round(100 * (done + ex) / (les.length + 3))}%"></i></div>`;
+      el.querySelector('b').textContent = `${gr.name}: ${gr.title}`;
+      el.title = gr.goal;
+      if (gradeOpen(gr)) el.onclick = () => selectLesson(nextIn(gr).id);
+      box.appendChild(el);
+    }
+  }
+  $('cGrade').onchange = () => selectLesson(nextIn(COURSE[+$('cGrade').value]).id);
+  $('cLesson').onchange = () => selectLesson($('cLesson').value);
+  $('cTempo').onchange = () => { if (running) stop(); trainerMsg = ''; renderCourse(); play = buildPlay(); };
+  $('cUnlock').checked = !!cProg.unlock;
+  $('cUnlock').onchange = () => { cProg.unlock = $('cUnlock').checked; saveCourse(); renderCourse(); };
   const patternSel = $('patternSel');
   const midiSongs = {}; // name -> parsed song
 
@@ -1085,6 +1252,7 @@ function midiToSong(mid, name) {
   function currentDrill() { return DRILLS.find(d => d.cat === $('drillCat').value && d.name === $('drillSel').value) || DRILLS.find(d => d.cat === $('drillCat').value) || DRILLS[0]; }
   function currentSource() {
     if (mode === 'drills') return { kind: 'pattern', pat: currentDrill() };
+    if (mode === 'course') { const L = curLesson(); return L && L.drill ? { kind: 'pattern', pat: L.drill } : { kind: 'none' }; }
     return midiSongs[patternSel.value] ? { kind: 'midi', song: midiSongs[patternSel.value] } : { kind: 'none' };
   }
 
@@ -1092,7 +1260,7 @@ function midiToSong(mid, name) {
   // Appends n bars of the current drill at the end of a drill play (used for fixed lengths and for endless loop).
   function appendDrillBars(p, n, bpm) {
     const sixteenth = 60 / bpm / 4, bar = sixteenth * 16, beat = 60 / bpm;
-    const vk = $('voiceWrap').hidden ? 'snare' : $('voiceSel').value;
+    const vk = mode === 'course' || $('voiceWrap').hidden ? 'snare' : $('voiceSel').value;
     const build = vk !== 'snare' ? voice(p.pat.build, vk) : p.pat.build;
     const notes = [], drums = [];
     for (let k = 0; k < n; k++) {
@@ -1152,11 +1320,11 @@ function midiToSong(mid, name) {
     const startBar = Math.max(1, +$('startBar').value || 1);
     if (src.kind === 'none') return { notes: [], drums: [], backing: [], beats: [], countIn: 0, end: 0 };
     if (src.kind === 'pattern') {
-      const bpm = drillBpm(), beat = 60 / bpm, lead = COUNT_IN_BEATS * beat;
-      const loop = $('drillLen').value === 'loop';
+      const bpm = mode === 'course' ? courseBpm() : drillBpm(), beat = 60 / bpm, lead = COUNT_IN_BEATS * beat;
+      const loop = mode !== 'course' && $('drillLen').value === 'loop';
       const p = { notes: [], drums: [], backing: [], beats: [], countIn: lead, drill: true, loop, pat: src.pat, nextBar: 0, tEnd: lead, passEnds: [], pass: 0 };
       for (let i = 0; i < COUNT_IN_BEATS; i++) p.beats.push({ t: i * beat, down: i % 4 === 0, countIn: true, mute: false });
-      appendDrillBars(p, loop ? 8 : (+$('drillLen').value || 8), bpm);
+      appendDrillBars(p, mode === 'course' ? curLesson().bars : loop ? 8 : (+$('drillLen').value || 8), bpm);
       p.end = loop ? Infinity : p.tEnd + 0.6;
       return p;
     }
@@ -1281,8 +1449,10 @@ function midiToSong(mid, name) {
   function refreshSourceUI() {
     const src = currentSource();
     $('starFind').hidden = !(mode === 'songs' && src.kind === 'none' && patternSel.value.startsWith('star:'));
-    $('songCtl').hidden = mode !== 'songs'; $('drillCtl').hidden = mode !== 'drills';
-    $('songSide').hidden = mode !== 'songs'; $('drillSide').hidden = mode !== 'drills';
+    $('songCtl').hidden = mode !== 'songs'; $('drillCtl').hidden = mode !== 'drills'; $('courseCtl').hidden = mode !== 'course';
+    $('songSide').hidden = mode !== 'songs'; $('drillSide').hidden = mode !== 'drills'; $('courseSide').hidden = mode !== 'course';
+    $('songInfo').hidden = mode === 'course';
+    if (mode === 'course') renderCourse();
     document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
     $('drumChRow').hidden = src.kind !== 'midi';
     if (src.kind === 'midi') {
@@ -1327,7 +1497,7 @@ function midiToSong(mid, name) {
   }
   function applySuggestedBpm() { const d = currentDrill(); if (d && d.bpm) { $('bpm').value = d.bpm[0]; $('trainTarget').value = d.bpm[1]; } }
   try { const v = JSON.parse(localStorage.getItem(DRILL_KEY) || 'null'); if (v && drillCats.includes(v.cat)) $('drillCat').value = v.cat; if (v && v.lvl !== undefined) $('drillLvl').value = v.lvl; fillDrillSel(); if (v && [...$('drillSel').options].some(o => o.value === v.name)) $('drillSel').value = v.name; if (v && v.bpm) $('bpm').value = v.bpm; } catch (e) { fillDrillSel(); }
-  try { const m = localStorage.getItem(MODE_KEY); if (m === 'songs' || m === 'drills') mode = m; } catch (e) {}
+  try { const m = localStorage.getItem(MODE_KEY); if (m === 'songs' || m === 'drills' || m === 'course') mode = m; } catch (e) {}
   const saveDrill = () => { try { localStorage.setItem(DRILL_KEY, JSON.stringify({ cat: $('drillCat').value, lvl: $('drillLvl').value, name: $('drillSel').value, bpm: $('bpm').value })); } catch (e) {} };
   function setMode(m) { if (running) stop(); trainerMsg = ''; mode = m; try { localStorage.setItem(MODE_KEY, m); } catch (e) {} refreshSourceUI(); }
   document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
@@ -1343,6 +1513,7 @@ function midiToSong(mid, name) {
     stop();
     const judged = stats.perfect + stats.good + stats.miss;
     const acc = judged ? (stats.perfect + stats.good * 0.5) / judged : 0;
+    if (mode === 'course') { trainerMsg = courseResult(acc); return; }
     if (mode !== 'drills' || !$('trainOn').checked) { trainerMsg = ''; return; }
     const bpm = +$('bpm').value, target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
     const pct = Math.round(acc * 100);
@@ -1865,7 +2036,7 @@ function midiToSong(mid, name) {
   function scheduleAudio(t) {
     if (!ac) return;
     const horizon = t + AHEAD;
-    const clickOn = $('clickOn').checked, hear = play.drill ? $('hearDrill').checked : $('hearDrums').checked;
+    const clickOn = $('clickOn').checked, hear = play.drill ? $(mode === 'course' ? 'hearCourse' : 'hearDrill').checked : $('hearDrums').checked;
     const late = (x) => x < t - 0.03; // skip anything already in the past
     while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) {
       const b = play.beats[schedIdx.beats++];
