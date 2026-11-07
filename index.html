@@ -210,9 +210,7 @@
     <button id="libBtn" class="ghost" title="Choose a folder of MIDI songs; it is remembered"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Set MIDI library</span></button>
     <button id="fileBtn" class="ghost" title="Load a single .mid song file"><svg class="ic"><use href="#i-file"/></svg><span class="t">Load one song</span></button>
     <span class="sep"></span>
-    <label class="field" id="tempoWrap"><span>Tempo</span><select id="tempoPct">
-      <option value="50">50%</option><option value="60">60%</option><option value="70">70%</option><option value="75">75%</option><option value="80">80%</option><option value="90">90%</option><option value="100" selected>100%</option><option value="110">110%</option><option value="120">120%</option>
-    </select></label>
+    <label class="field" id="tempoWrap"><span>Tempo</span><select id="tempoPct"><option value="40">40%</option><option value="45">45%</option><option value="50">50%</option><option value="55">55%</option><option value="60">60%</option><option value="65">65%</option><option value="70">70%</option><option value="75">75%</option><option value="80">80%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>100%</option><option value="105">105%</option><option value="110">110%</option><option value="115">115%</option><option value="120">120%</option></select></label>
   </div>
   <div class="fields" id="drillCtl" hidden>
     <label class="field"><span>Category</span><select id="drillCat"></select></label>
@@ -263,8 +261,12 @@
           <div class="row"><label class="sw"><input id="hearDrums" type="checkbox"> Hear the song's drums</label></div>
           <div class="row"><label class="sw"><input id="realInst" type="checkbox" checked> Real instrument sounds</label></div>
           <div class="row"><label>Backing volume <input id="backVol" type="range" min="0" max="100" value="70"></label></div>
-          <div class="row"><label>Start at bar <input id="startBar" type="number" min="1" value="1"></label></div>
+          <div class="row"><label><span id="startBarLbl">Start at bar</span> <input id="startBar" type="number" min="1" value="1"></label></div>
+          <div class="row"><label class="sw"><input id="loopOn" type="checkbox"> Loop a section</label></div>
+          <div class="row loopRow"><label>To bar <input id="loopTo" type="number" min="1" value="4"></label></div>
+          <div class="row loopRow"><label>Speed up after a clean pass <select id="loopStep"><option value="0">Off</option><option value="5" selected>+5% tempo</option><option value="10">+10% tempo</option></select></label></div>
         </div>
+        <p class="hint loopRow">Plays the bars over and over with no break. Start slow (set Tempo to 60–70%): each pass you play at 90% or better speeds it up, until 100%.</p>
         <p class="hint" id="instInfo"></p>
       </div>
       <h2>Display &amp; timing</h2>
@@ -528,12 +530,14 @@ function midiToSong(mid, name) {
   // "(R)" = ghost note, "-" = rest.
   // Token extras: "R@t1" = right hand on tom 1 (sn, t1, t2, t3, hh, cr, rd), "K" = kick, "K+R@t3" = together.
   const LANE_ABBR = { sn: 'snare', t1: 'tom1', t2: 'tom2', t3: 'tom3', ft: 'tom3', hh: 'hh', cr: 'crash', rd: 'ride', k: 'kick' };
-  function stickSeq(str, lane = 'snare') {
+  // per = steps per bar: 16 (16th notes) or 12 (8th-note triplets). Steps are always returned in 16th units.
+  function stickSeq(str, lane = 'snare', per = 16) {
     const toks = str.trim().split(/\s+/);
     return (bar) => {
       const out = [];
-      for (let i = 0; i < 16; i++) {
-        const tk = toks[(bar * 16 + i) % toks.length];
+      for (let j = 0; j < per; j++) {
+        const i = j * 16 / per;
+        const tk = toks[(bar * per + j) % toks.length];
         if (tk === '-') continue;
         for (const part of tk.split('+')) {
           if (/^K>?$/i.test(part)) { out.push([i, 'kick', { acc: part.includes('>') }]); continue; }
@@ -548,14 +552,15 @@ function midiToSong(mid, name) {
       return out;
     };
   }
-  // Groove grid: each part is a 16-char string per bar. x = hit, X = accent, g = ghost, o = open hat.
+  // Groove grid: each part is a 16-char string per bar (or 12 chars for triplets). x = hit, X = accent, g = ghost, o = open hat.
   function grid(parts) {
     const out = [];
     for (const [lane, str] of Object.entries(parts)) {
       if (!str) continue;
-      for (let i = 0; i < 16; i++) {
-        const c = str[i]; if (!c || c === '-') continue;
-        out.push([i, lane, { acc: c === 'X', ghost: c === 'g', open: c === 'o' }]);
+      const per = str.length === 12 ? 12 : 16; // 12 chars = 8th-note triplets (3 per beat)
+      for (let j = 0; j < per; j++) {
+        const c = str[j]; if (!c || c === '-') continue;
+        out.push([j * 16 / per, lane, { acc: c === 'X', ghost: c === 'g', open: c === 'o' }]);
       }
     }
     return out;
@@ -719,6 +724,20 @@ function midiToSong(mid, name) {
     D('Timing', 2, [60, 100], 'Offbeat 8ths only', 'Play only on the "&" of each beat, never on the beat.', stickSeq('- - R - - - L -')),
     D('Timing', 3, [60, 100], '"e" and "a" only', 'Only the 16th-note offbeats: the hardest spots to feel.', stickSeq('- R - L')),
     D('Timing', 3, [60, 100], 'Gap click 16ths with accents in 3s', '16ths with accents every 3 notes, and the click drops out for 2 of every 4 bars.', stickSeq('R> L R L> R L R> L R L> R L R> L R L> R L R> L R L> R L'), { gap: true }),
+    // ===== Triplets & shuffles (12 steps per bar = 8th-note triplets) =====
+    D('Triplets & shuffles', 1, [60, 110], 'Triplet singles', '8th-note triplets with alternating hands: three even notes per click. Say "1-trip-let, 2-trip-let".', stickSeq('R L R L R L R L R L R L', 'snare', 12)),
+    D('Triplets & shuffles', 1, [60, 110], 'Accent the beat in triplets', 'Triplet singles with an accent on every beat. The accent switches hands each beat.', stickSeq('R> L R L> R L R> L R L> R L', 'snare', 12)),
+    D('Triplets & shuffles', 1, [70, 120], 'Basic shuffle', 'The shuffle: hi-hat on the 1st and 3rd note of each triplet, kick on 1 and 3, snare on 2 and 4.', () => grid({ hh: 'x-xx-xx-xx-x', snare: '---x-----x--', kick: 'x-----x-----' })),
+    D('Triplets & shuffles', 1, [60, 90], '12/8 slow blues', 'Slow blues feel: triplets on the ride cymbal, kick on 1 and 3, snare on 2 and 4.', () => grid({ ride: 'xxxxxxxxxxxx', snare: '---X-----X--', kick: 'x-----x-----' })),
+    D('Triplets & shuffles', 2, [60, 100], 'Triplet doubles', 'R R L L across triplets: the doubles shift against the beat, so count out loud.', stickSeq('R R L L R R L L R R L L', 'snare', 12)),
+    D('Triplets & shuffles', 2, [60, 110], 'Paradiddle-diddle', 'R L R R L L: a six-note rudiment that fits two beats of triplets. Great for fills.', stickSeq('R> L R R L L R> L R R L L', 'snare', 12)),
+    D('Triplets & shuffles', 2, [70, 120], 'Shuffle with a triplet fill', 'Three bars of shuffle, then a bar of triplets down the toms.', (bar) => bar % 4 === 3
+      ? stickSeq('R L R L@t1 R@t1 L@t1 R@t2 L@t2 R@t2 L@t3 R@t3 L@t3', 'snare', 12)(bar)
+      : grid({ hh: 'x-xx-xx-xx-x', snare: '---x-----x--', kick: 'x-----x-----', crash: bar % 4 === 0 ? 'x-----------' : '' }).filter(([st, ln]) => !(bar % 4 === 0 && st === 0 && ln === 'hh'))),
+    D('Triplets & shuffles', 2, [80, 130], 'Shuffle with ghost notes', 'Shuffle with soft ghost notes on the snare in the gaps of the hi-hat pattern.', () => grid({ hh: 'x-xx-xx-xx-x', snare: '-g-X-g-g-X-g', kick: 'x-----x-----' })),
+    D('Triplets & shuffles', 3, [70, 110], 'Half-time shuffle (Purdie style)', 'Hi-hat shuffle, ghost notes in every gap, one big backbeat on beat 3.', () => grid({ hh: 'x-xx-xx-xx-x', snare: '-g--g-X---g-', kick: 'x----x---x--' })),
+    D('Triplets & shuffles', 3, [60, 110], 'Bonham triplets', 'Right hand on the floor tom, left on the snare, then the kick: R L K around and around.', stickSeq('R@t3 L K R@t3 L K R@t3 L K R@t3 L K', 'snare', 12)),
+    D('Triplets & shuffles', 3, [60, 100], 'Triplets around the kit', 'One triplet per drum: snare, tom 1, tom 2, floor tom. Keep them even as you move.', stickSeq('R L R R@t1 L@t1 R@t1 R@t2 L@t2 R@t2 R@t3 L@t3 R@t3', 'snare', 12)),
   ];
   const drillCats = [...new Set(DRILLS.map(d => d.cat))];
   const patternSel = $('patternSel');
@@ -1093,6 +1112,23 @@ function midiToSong(mid, name) {
   }
   // Endless loop: keep ~8 s of drill queued ahead, and score each 4-bar pass.
   function extendLoop(t) {
+    if (!play.drill) { // song section: queue the next pass ~3 s before this one ends, at the (maybe raised) tempo
+      if (play.tEnd - t < 3) {
+        const snap = play.passSnap || { perfect: 0, good: 0, miss: 0 };
+        const P = stats.perfect - snap.perfect, G = stats.good - snap.good, M = stats.miss - snap.miss;
+        play.passSnap = { perfect: stats.perfect, good: stats.good, miss: stats.miss };
+        play.pass++;
+        const acc = P + G + M ? (P + G * 0.5) / (P + G + M) : 0, pct = Math.round(acc * 100);
+        let tempo = +$('tempoPct').value || 100, msg = `Pass ${play.pass}: ${pct}%`;
+        const step = +$('loopStep').value;
+        if (step && acc >= 0.9 && tempo < 100) { tempo = Math.min(100, tempo + step); $('tempoPct').value = String(tempo); msg += `, clean! Next pass at ${tempo}%`; }
+        else if (step && acc >= 0.9) msg += ', full speed 🏁';
+        else if (step) msg += `, staying at ${tempo}%`;
+        play.loopMsg = msg;
+        appendSongPass(play, 100 / tempo); play.bars = buildBars(play);
+      }
+      return;
+    }
     if (play.tEnd - t < 8) { appendDrillBars(play, LOOP_PASS, drillBpm()); play.bars = buildBars(play); }
     while (play.passEnds.length && t > play.passEnds[0].t + 0.25) {
       const pe = play.passEnds.shift(), snap = play.passSnap || { perfect: 0, good: 0, miss: 0 };
@@ -1126,6 +1162,7 @@ function midiToSong(mid, name) {
     }
     const s = src.song, scale = 100 / (+$('tempoPct').value || 100);
     const drumCh = +$('drumCh').value;
+    if ($('loopOn').checked) return buildSongLoop(s, startBar, scale, drumCh);
     const from = s.barStarts[Math.min(startBar - 1, s.barStarts.length - 1)] || 0;
     // count-in: 4 beats at the tempo where we start
     const bIdx = Math.max(0, s.beats.findIndex(b => b.t >= from - 1e-6));
@@ -1155,6 +1192,63 @@ function midiToSong(mid, name) {
     if (audio) end = Math.max(end, T(songAudio[s.key].buffer.duration - songAudio[s.key].offset / 1000) + 0.5);
     return { notes, drums, backing, beats, countIn: lead, end, audio };
   }
+
+  // ---------- Song section loop: bars [a..b] repeated with no gap, optionally speeding up ----------
+  function songSection(s, a) {
+    const nb = s.barStarts.length;
+    const A = Math.max(1, Math.min(a, nb)), B = Math.max(A, Math.min(+$('loopTo').value || A, nb));
+    return { A, B, from: s.barStarts[A - 1], to: B < nb ? s.barStarts[B] : s.end };
+  }
+  function buildSongLoop(s, startBar, scale, drumCh) {
+    const sec = songSection(s, startBar);
+    const bIdx = Math.max(0, s.beats.findIndex(b => b.t >= sec.from - 1e-6));
+    const beatLen = ((s.beats[bIdx + 1]?.t ?? sec.from + 0.5) - (s.beats[bIdx]?.t ?? sec.from)) * scale || 0.5;
+    const lead = COUNT_IN_BEATS * beatLen;
+    const useAudio = !!(songAudio[s.key] && $('audioUse').checked);
+    const p = { notes: [], drums: [], backing: [], beats: [], countIn: lead, end: Infinity, loop: true, song: s, sec, drumCh, useAudio,
+      tEnd: lead, passEnds: [], pass: 0, audioSegs: [], audio: useAudio ? { key: s.key, loop: true } : null };
+    for (let i = 0; i < COUNT_IN_BEATS; i++) p.beats.push({ t: i * beatLen, down: i === 0, countIn: true });
+    appendSongPass(p, scale);
+    return p;
+  }
+  function appendSongPass(p, scale) {
+    const { song: s, sec, drumCh } = p, t0 = p.tEnd;
+    const T = (t) => t0 + (t - sec.from) * scale;
+    const notes = [], drums = [], backing = [];
+    for (const n of s.notes) {
+      if (n.t < sec.from - 0.01 || n.t >= sec.to - 0.01) continue;
+      if (n.ch === drumCh) {
+        drums.push({ t: T(n.t), note: n.note, vel: n.vel });
+        const lane = SONG_GM_TO_LANE[n.note];
+        if (lane) {
+          const t = T(n.t), last = notes[notes.length - 1];
+          if (!(last && last.lane === laneIdx[lane] && Math.abs(last.t - t) < 0.03)) notes.push({ t, lane: laneIdx[lane], state: 'pending', dt: 0, open: n.note === 46 });
+        }
+      } else if (!p.useAudio) backing.push({ t: T(n.t), dur: Math.min(n.dur, sec.to - n.t) * scale, note: n.note, vel: n.vel, ch: n.ch, program: n.program, gain: n.gain ?? 0.8, pan: n.pan || 0 });
+    }
+    notes.sort((a, b) => a.t - b.t);
+    p.notes.push(...notes); p.drums.push(...drums); p.backing.push(...backing);
+    for (const b of s.beats) if (b.t >= sec.from - 1e-6 && b.t < sec.to - 1e-6) {
+      const bt = { t: T(b.t), down: b.down };
+      if (b.down) bt.barNo = s.barStarts.filter(x => x <= b.t + 1e-6).length;
+      p.beats.push(bt);
+    }
+    if (p.useAudio) p.audioSegs.push({ t0, from: sec.from, scale });
+    p.tEnd = T(sec.to);
+    p.passEnds.push({ t: p.tEnd });
+    p.scale = scale; (p.segs = p.segs || []).push({ t0, scale });
+  }
+  $('loopOn').onchange = () => {
+    if ($('loopOn').checked && (+$('loopTo').value || 0) < (+$('startBar').value || 1)) $('loopTo').value = (+$('startBar').value || 1) + 3;
+    refreshLoopUI(); if (!running) play = buildPlay();
+  };
+  function refreshLoopUI() {
+    const on = $('loopOn').checked;
+    document.querySelectorAll('.loopRow').forEach(r => r.hidden = !on);
+    $('startBarLbl').textContent = on ? 'From bar' : 'Start at bar';
+  }
+  ['loopTo', 'loopStep'].forEach(id => $(id).addEventListener('change', () => { if (!running) play = buildPlay(); }));
+  refreshLoopUI();
 
   const startBtn = $('startBtn');
   function start() {
@@ -1413,6 +1507,23 @@ function midiToSong(mid, name) {
     const pa = play.audio; if (!pa) return;
     const a = songAudio[pa.key]; if (!a) return;
     const off = a.offset / 1000;
+    if (pa.loop) { // section loop: one media element, re-seeked at each pass (keeps pitch at any tempo)
+      const el = new Audio(a.url); el.preservesPitch = true;
+      ac.createMediaElementSource(el).connect(backBus);
+      audioEl = el;
+      const iv = setInterval(() => {
+        if (!running || audioEl !== el) { clearInterval(iv); return; }
+        const tt = now() - startAt; let g = null;
+        for (const sg of play.audioSegs) if (sg.t0 <= tt + 0.01) g = sg;
+        if (!g) return;
+        const e = (tt - g.t0) / g.scale + g.from + off;
+        if (e < 0) return;
+        if (Math.abs(el.playbackRate - 1 / g.scale) > 1e-3) el.playbackRate = 1 / g.scale;
+        if (el.paused) { el.currentTime = e; el.play().catch(() => {}); }
+        else if (Math.abs(el.currentTime - e) > 0.05) el.currentTime = e;
+      }, 15);
+      return;
+    }
     const a0 = pa.from + off;                 // recording position at the end of the count-in
     const when = startAt + pa.lead;           // audio-clock time of that moment
     if (Math.abs(pa.scale - 1) < 1e-6) {      // full speed: sample-accurate buffer playback
@@ -1438,7 +1549,7 @@ function midiToSong(mid, name) {
     if (audioNode) { try { audioNode.stop(); } catch (e) {} audioNode = null; }
     if (audioEl) { audioEl.pause(); audioEl = null; }
   }
-  window.__audio = { songAudio, autoSync, get node() { return audioNode; } };
+  window.__audio = { songAudio, autoSync, get node() { return audioNode; }, get el() { return audioEl; } };
 
   // ---------- Starter 20: classic songs to learn drums on ----------
   // The app can't ship the songs themselves (they're copyrighted), so this is a curated list that picks up
@@ -1970,7 +2081,9 @@ function midiToSong(mid, name) {
       ctx.fillStyle = pg; ctx.fillRect(x0, 0, hwW * Math.max(0, Math.min(1, t / play.end)), 3);
     }
     if (running && play.loop && t >= play.countIn) {
-      const txt = `${drillBpm()} BPM  ·  ${play.loopMsg || 'Press Stop when you are done'}`;
+      const curSeg = play.drill ? null : [...play.segs].reverse().find(g => g.t0 <= t) || play.segs[0];
+      const head = play.drill ? `${drillBpm()} BPM` : `Bars ${play.sec.A}–${play.sec.B}  ·  ${Math.round(100 / curSeg.scale)}%`;
+      const txt = `${head}  ·  ${play.loopMsg || 'Press Stop when you are done'}`;
       ctx.font = `600 12px ${UIF}`; const tw = ctx.measureText(txt).width;
       roundRect(x0 + 10, 12, tw + 64, 26, 13); ctx.fillStyle = 'rgba(16,18,23,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = 1; ctx.stroke();
       roundRect(x0 + 13, 15, 40, 20, 10); ctx.fillStyle = '#7c8cff'; ctx.fill();
@@ -2040,22 +2153,42 @@ function midiToSong(mid, name) {
     const beats = p.beats; if (!beats.length) return [];
     const bars = []; const beatBar = [], beatIn = [];
     beats.forEach((b, i) => {
-      if (b.down || !bars.length) bars.push({ t0: b.t, beats: [], notes: [] });
+      if (b.down || !bars.length) bars.push({ t0: b.t, beats: [], notes: [], barNo: b.barNo });
       const bar = bars[bars.length - 1]; beatBar[i] = bars.length - 1; beatIn[i] = bar.beats.length; bar.beats.push(b.t);
     });
     const lenAt = (i) => i + 1 < beats.length ? beats[i + 1].t - beats[i].t : (i > 0 ? beats[i].t - beats[i - 1].t : 0.5);
     bars.forEach((bar, i) => { bar.t1 = bars[i + 1] ? bars[i + 1].t0 : bar.beats[bar.beats.length - 1] + lenAt(beats.length - 1); });
+    // Place each note in its beat, then decide per beat whether it reads as 16ths, triplets or a swung (shuffle) 8th.
     let k = 0;
+    const byBeat = new Map();
     for (const n of p.notes) {
       while (k + 1 < beats.length && beats[k + 1].t <= n.t + lenAt(k + 1) / 8) k++;
-      let bi = k, sub = Math.round((n.t - beats[k].t) / lenAt(k) * 4);
-      if (sub >= 4) { if (bi + 1 < beats.length) { bi++; sub = 0; } else sub = 3; }
-      sub = Math.max(0, sub);
-      bars[beatBar[bi]].notes.push({ beat: beatIn[bi], sub, lane: lanes[n.lane].id, ref: n });
+      let bi = k, frac = Math.max(0, (n.t - beats[k].t) / lenAt(k));
+      if (frac > 0.9 && bi + 1 < beats.length) { bi++; frac = 0; }
+      if (!byBeat.has(bi)) byBeat.set(bi, []);
+      byBeat.get(bi).push({ frac, lane: lanes[n.lane].id, ref: n });
+    }
+    for (const [bi, list] of byBeat) {
+      const e16 = list.reduce((a, x) => a + Math.abs(x.frac * 4 - Math.round(x.frac * 4)) / 4, 0);
+      const e3 = list.reduce((a, x) => a + Math.abs(x.frac * 3 - Math.round(x.frac * 3)) / 3, 0);
+      const tripish = e3 + 0.01 < e16;
+      const parts = new Set(list.map(x => Math.min(2, Math.round(x.frac * 3))));
+      const mode = !tripish ? 16 : parts.has(1) ? 3 : 'swing'; // swing = only the 1st and 3rd triplet: written as 8ths
+      const bar = bars[beatBar[bi]];
+      if (mode === 3) (bar.trip = bar.trip || {})[beatIn[bi]] = true;
+      if (mode === 'swing') bar.swing = true;
+      for (const x of list) {
+        let sub = mode === 3 ? Math.round(x.frac * 3) : mode === 'swing' ? Math.round(x.frac * 3) * 1 : Math.round(x.frac * 4);
+        if (mode === 'swing') sub = sub >= 2 ? 2 : 0;
+        const per = mode === 3 ? 3 : 4;
+        let tb = bi;
+        if (sub >= per) { if (bi + 1 < beats.length) { tb = bi + 1; sub = 0; } else sub = per - 1; }
+        bars[beatBar[tb]].notes.push({ beat: beatIn[tb], sub, lane: x.lane, ref: x.ref });
+      }
     }
     const startBar = p.drill ? 1 : Math.max(1, +$('startBar').value || 1);
     let real = 0;
-    bars.forEach(bar => { bar.countIn = bar.t0 < p.countIn - 0.01 && !bar.notes.length; bar.num = bar.countIn ? null : startBar + real++; });
+    bars.forEach(bar => { bar.countIn = bar.t0 < p.countIn - 0.01 && !bar.notes.length; if (bar.countIn) bar.num = null; else { const n = startBar + real++; bar.num = bar.barNo ?? n; } });
     return bars;
   }
 
@@ -2084,9 +2217,10 @@ function midiToSong(mid, name) {
       ctx.beginPath(); ctx.moveTo(left + (s + 1) * barW, posY(0)); ctx.lineTo(left + (s + 1) * barW, posY(8)); ctx.stroke();
       if (!bar) continue;
       const nb = bar.beats.length, inner = barW - 30;
-      const colX = (beat, sub) => bx + 10 + (beat + sub / 4) / nb * inner;
+      const per = (beat) => bar.trip && bar.trip[beat] ? 3 : 4; // subdivisions in this beat
+      const colX = (beat, sub) => bx + 10 + (beat + sub / per(beat)) / nb * inner;
       ctx.fillStyle = '#6b6457'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
-      ctx.fillText(bar.countIn ? 'count-in' : `bar ${bar.num}`, bx, y0 + 16);
+      ctx.fillText(bar.countIn ? 'count-in' : `bar ${bar.num}` + (bar.swing ? '   ·   shuffle: ♪♪ = ♩♪ triplet' : ''), bx, y0 + 16);
       if (s === 0 && running) {
         ctx.fillStyle = 'rgba(90,176,255,.10)'; ctx.fillRect(left + 2, y0 + 22, barW - 4, h - 30);
         let k = 0; while (k + 1 < nb && bar.beats[k + 1] <= t) k++;
@@ -2105,9 +2239,10 @@ function midiToSong(mid, name) {
             if (up && !bar.countIn) drawQuarterRest(colX(beat, 0) + 2, posY(4), gap, ink);
             continue;
           }
+          const P = per(beat), trip = P === 3;
           const subs = [...new Set(inBeat.map(n => n.sub))].sort((a, b) => a - b);
-          const cols = subs.map((sub, i) => ({ sub, dur: (subs[i + 1] ?? 4) - sub, notes: inBeat.filter(n => n.sub === sub) }));
-          if (up && subs[0] > 0) drawSmallRest(colX(beat, 0) + 2, posY(3), gap, ink, subs[0] === 2 ? 1 : 2);
+          const cols = subs.map((sub, i) => ({ sub, dur: (subs[i + 1] ?? P) - sub, notes: inBeat.filter(n => n.sub === sub) }));
+          if (up && subs[0] > 0) drawSmallRest(colX(beat, 0) + 2, posY(3), gap, ink, trip || subs[0] === 2 ? 1 : 2);
           const ys = inBeat.map(n => posY(STAFF_POS[n.lane]));
           const beamY = up ? Math.min(...ys, posY(4)) - gap * 3.3 : Math.max(...ys) + gap * 3.3;
           const hw = gap * 0.62;
@@ -2132,12 +2267,12 @@ function midiToSong(mid, name) {
             const cy = c.notes.map(n => posY(STAFF_POS[n.lane]));
             const from = up ? Math.max(...cy) : Math.min(...cy);
             ctx.beginPath(); ctx.moveTo(stemX(c), from); ctx.lineTo(stemX(c), beamY); ctx.stroke();
-            if (c.dur === 3) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(colX(beat, c.sub) + hw + 4, posY(up ? 3 : 7) - gap / 4, 1.8, 0, Math.PI * 2); ctx.fill(); }
+            if (c.dur === 3 && !trip) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(colX(beat, c.sub) + hw + 4, posY(up ? 3 : 7) - gap / 4, 1.8, 0, Math.PI * 2); ctx.fill(); }
           }
           const bw = 3.5, dir = up ? 1 : -1;
           if (cols.length === 1) {
             const c = cols[0];
-            const flags = c.dur >= 4 ? 0 : c.dur >= 2 ? 1 : 2;
+            const flags = c.dur >= P ? 0 : trip || c.dur >= 2 ? 1 : 2;
             for (let f = 0; f < flags; f++) {
               const fy = beamY + dir * f * 6, sx = stemX(c);
               ctx.beginPath(); ctx.moveTo(sx, fy); ctx.quadraticCurveTo(sx + 9, fy + dir * 6, sx + 7, fy + dir * 14); ctx.stroke();
@@ -2147,7 +2282,11 @@ function midiToSong(mid, name) {
             const x1 = stemX(cols[0]), x2 = stemX(cols[cols.length - 1]);
             ctx.fillRect(x1, up ? beamY : beamY - bw, x2 - x1 + 1, bw);
             const by = up ? beamY + 6 : beamY - 6 - bw;
-            cols.forEach((c, i) => {
+            if (trip) { // triplet bracket number
+              ctx.font = `italic 700 ${Math.round(gap * 1.15)}px Georgia, serif`; ctx.textAlign = 'center';
+              ctx.fillText('3', (x1 + x2) / 2, up ? beamY - 5 : beamY + gap * 1.3);
+            }
+            if (!trip) cols.forEach((c, i) => {
               const isSixteenth = c.dur === 1 || (c.sub % 2 === 1);
               if (!isSixteenth) return;
               const sx = stemX(c), nx = cols[i + 1] ? stemX(cols[i + 1]) : null;
