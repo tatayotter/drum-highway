@@ -1,0 +1,15 @@
+{
+  "name": "Drum Highway",
+  "short_name": "Drum Highway",
+  "description": "Play along with songs and drills on your e-drum kit.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090a0d",
+  "theme_color": "#101217",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
