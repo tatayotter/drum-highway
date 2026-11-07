@@ -102,6 +102,26 @@
   .stepper input { border: 0; border-radius: 0; height: 32px; width: 52px; text-align: center; background: transparent; padding: 0; font-weight: 700; }
   .stepper input::-webkit-inner-spin-button { display: none; }
   .field.scroll { margin-left: auto; }
+  /* profiles */
+  .profile { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: var(--accent-ink);
+    background: linear-gradient(135deg, #8f9cff, #5a63e6); }
+  .pinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pinfo select { height: 28px; font-weight: 600; background-color: transparent; border-color: transparent; padding-left: 4px; }
+  .pinfo small { color: var(--muted); font-size: 11.5px; padding-left: 5px; }
+  .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(5,6,9,.72); backdrop-filter: blur(4px); }
+  .mcard { width: min(460px, 100%); background: var(--surface); border: 1px solid var(--line-2); border-radius: 16px; padding: 22px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.8);
+    display: flex; flex-direction: column; gap: 10px; }
+  .mcard h2 { margin: 0; font-size: 19px; } .mcard p { margin: 0; color: var(--muted); }
+  .mfield { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .mfield span { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+  .mfield input { height: 40px; font-size: 15px; }
+  .msub { margin-top: 8px !important; color: var(--text) !important; font-weight: 600; }
+  .mopt { height: auto; flex-direction: column; align-items: flex-start; gap: 3px; padding: 12px 14px; text-align: left; white-space: normal; border-radius: 10px; }
+  .mopt span { font-weight: 400; font-size: 12.5px; opacity: .85; }
+  .mopt.primary span { color: var(--accent-ink); }
+  #pmCancel { align-self: flex-end; }
+  .mark.Placed { background: rgba(255,255,255,.08); color: var(--muted); }
   .bpmread { height: 34px; display: flex; align-items: center; font: 700 15px var(--mono); padding: 0 4px; }
   /* course */
   .lesson { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 6px; }
@@ -256,6 +276,17 @@
   <input id="fileInput" type="file" accept=".mid,.midi,audio/midi" hidden>
   <label class="field scroll"><span>Scroll speed</span><input id="speed" type="range" min="200" max="900" value="450"></label>
 </div>
+<div id="pModal" class="modal" hidden>
+  <div class="mcard" role="dialog" aria-labelledby="pmTitle">
+    <h2 id="pmTitle">Create your player profile</h2>
+    <p>Your course progress, grades and marks are saved to this profile on this computer.</p>
+    <label class="mfield"><span>Your name</span><input id="pmName" type="text" maxlength="24" placeholder="e.g. Rowil" autocomplete="off"></label>
+    <p class="msub">Where should you start?</p>
+    <button id="pmTest" class="mopt primary"><b>Take the placement test</b><span>About 2–4 minutes. You play short pieces that get harder, and we start you at the right grade.</span></button>
+    <button id="pmZero" class="mopt"><b>Start from the beginning</b><span>Begin at Debut: First steps. Best if you're new to drums.</span></button>
+    <button id="pmCancel" class="ghost small">Cancel</button>
+  </div>
+</div>
 <main>
   <div id="stage"><canvas id="cv"></canvas></div>
   <aside>
@@ -276,12 +307,18 @@
       <div class="info" id="songInfo">Built-in practice pattern.</div>
       <div class="btns" id="starFind" hidden><a id="starLink" class="btnlink" target="_blank" rel="noopener"><svg class="ic"><use href="#i-file"/></svg>Find this song's MIDI</a><button id="starLib" class="ghost"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Set MIDI library</span></button></div>
       <div id="courseSide" hidden>
+        <div class="profile">
+          <div class="avatar" id="pAvatar">?</div>
+          <div class="pinfo"><select id="pSel" title="Switch player"></select><small id="pLevel"></small></div>
+          <button id="pNew" class="ghost small" title="Add a player">+ New</button>
+        </div>
         <div class="lesson" id="cCard"></div>
         <div class="btns"><button id="cNext" class="primary" hidden><span class="t">Next lesson</span></button></div>
         <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the lesson (demo)</label></div></div>
         <h2>Your course</h2>
         <div class="grades" id="cGrades"></div>
         <div class="rows"><div class="row"><label class="sw"><input id="cUnlock" type="checkbox"> Unlock every grade (for experienced players)</label></div></div>
+        <div class="btns"><button id="pRetest" class="ghost small">Retake the placement test</button><button id="pDelete" class="ghost small">Delete this player</button></div>
         <p class="hint">Pass each lesson at full tempo to unlock the next. Each grade ends with a three-piece exam marked Pass, Merit or Distinction, and passing it opens the next grade. Progress is saved in this browser.</p>
       </div>
       <div id="drillSide" hidden>
@@ -822,16 +859,24 @@ function midiToSong(mid, name) {
     ...g.exam.map(([cat, name, bpm], i) => ({ id: `${gi}:e${i}`, gi, n: i + 1, exam: true, cat, name, bpm, bars: 16, need: EXAM_NEED })),
   ] }));
   COURSE.forEach(g => g.items.forEach(L => { L.drill = DRILLS.find(d => d.cat === L.cat && d.name === L.name); if (!L.drill) console.warn('Course: missing drill', L.cat, L.name); }));
-  const COURSE_KEY = 'drumHighway.course.v1';
-  let cProg = { best: {}, pos: '0:0', unlock: false };
-  try { Object.assign(cProg, JSON.parse(localStorage.getItem(COURSE_KEY) || '{}')); } catch (e) {}
-  const saveCourse = () => { try { localStorage.setItem(COURSE_KEY, JSON.stringify(cProg)); } catch (e) {} };
+  // ---- Player profiles: each has its own course progress and placement ----
+  const PROF_KEY = 'drumHighway.profiles.v1', COURSE_KEY = 'drumHighway.course.v1';
+  let profs = { current: null, list: {} };
+  try { Object.assign(profs, JSON.parse(localStorage.getItem(PROF_KEY) || '{}')); } catch (e) {}
+  try { // carry over progress saved before profiles existed
+    const old = JSON.parse(localStorage.getItem(COURSE_KEY) || 'null');
+    if (old && !Object.keys(profs.list).length) { profs.list.p1 = { name: 'Player 1', prog: { placed: 0, ...old } }; profs.current = 'p1'; }
+  } catch (e) {}
+  const blankProg = () => ({ best: {}, pos: '0:0', unlock: false, placed: 0 });
+  let cProg = (profs.list[profs.current] || {}).prog || blankProg();
+  const saveCourse = () => { if (profs.current && profs.list[profs.current]) { profs.list[profs.current].prog = cProg; try { localStorage.setItem(PROF_KEY, JSON.stringify(profs)); } catch (e) {} } };
   const findItem = (id) => { for (const g of COURSE) for (const L of g.items) if (L.id === id) return L; return null; };
   const passed = (L) => (cProg.best[L.id] || 0) >= L.need;
   const gradeLessons = (g) => g.items.filter(L => !L.exam), gradeExam = (g) => g.items.filter(L => L.exam);
-  const gradeDone = (g) => gradeExam(g).every(passed);
+  const examsDone = (g) => gradeExam(g).every(passed);
+  const gradeDone = (g) => examsDone(g) || g.gi < (cProg.placed || 0);
   function gradeMark(g) {
-    if (!gradeDone(g)) return null;
+    if (!examsDone(g)) return g.gi < (cProg.placed || 0) ? 'Placed' : null;
     const avg = gradeExam(g).reduce((a, L) => a + cProg.best[L.id], 0) / gradeExam(g).length;
     return avg >= 0.95 ? 'Distinction' : avg >= 0.88 ? 'Merit' : 'Pass';
   }
@@ -841,7 +886,7 @@ function midiToSong(mid, name) {
     const idx = g.items.indexOf(L);
     return idx === 0 || passed(g.items[idx - 1]);
   }
-  function curLesson() { return findItem(cProg.pos) || COURSE[0].items[0]; }
+  function curLesson() { return placement ? PLACE[placement.step] : findItem(cProg.pos) || COURSE[0].items[0]; }
   const courseBpm = () => Math.round(curLesson().bpm * (+$('cTempo').value || 100) / 100);
   // first lesson in a grade that isn't passed yet (or the last one)
   const nextIn = (g) => g.items.find(L => itemOpen(L) && !passed(L)) || g.items.filter(itemOpen).pop() || g.items[0];
@@ -851,6 +896,7 @@ function midiToSong(mid, name) {
     refreshSourceUI();
   }
   function courseResult(acc) {
+    if (placement) return placementResult(acc);
     const L = curLesson(), pct = Math.round(acc * 100), tempo = +$('cTempo').value;
     if (tempo < 100) return acc >= L.need ? `${pct}% at ${tempo}% tempo. Now try it faster: passing counts at full tempo.` : `${pct}% at ${tempo}% tempo. Keep going!`;
     const g = COURSE[L.gi], wasDone = gradeDone(g);
@@ -863,6 +909,10 @@ function midiToSong(mid, name) {
     return msg;
   }
   function renderCourse() {
+    if (!profs.current && $('pModal').hidden) openProfileModal(true);
+    renderProfile();
+    if (placement) return renderPlacement();
+    $('cGrade').disabled = $('cLesson').disabled = $('cTempo').disabled = false;
     const L = curLesson(), g = COURSE[L.gi];
     const gs = $('cGrade'); gs.innerHTML = '';
     COURSE.forEach(gr => { const m = gradeMark(gr); const o = new Option(`${gr.name}: ${gr.title}${m ? ' ✓' : ''}`, gr.gi); o.disabled = !gradeOpen(gr); gs.add(o); });
@@ -889,6 +939,11 @@ function midiToSong(mid, name) {
     $('cNext').hidden = !(nx && nx !== L) && !nextGrade;
     btnText('cNext', nx && nx !== L ? (nx.exam ? 'Go to the exam' : 'Next lesson') : nextGrade ? `Start ${nextGrade.name}` : 'Next');
     $('cNext').onclick = () => selectLesson(nx && nx !== L ? nx.id : nextIn(nextGrade).id);
+    $('cNext').classList.add('primary');
+    $('cUnlock').checked = !!cProg.unlock;
+    renderGradesList(g);
+  }
+  function renderGradesList(g) {
     const box = $('cGrades'); box.innerHTML = '';
     for (const gr of COURSE) {
       const les = gradeLessons(gr), done = les.filter(passed).length, ex = gradeExam(gr).filter(passed).length, m = gradeMark(gr);
@@ -898,13 +953,98 @@ function midiToSong(mid, name) {
         <div>${m ? `<span class="mark ${m}">${m}</span>` : ''}</div><div class="bar"><i style="width:${Math.round(100 * (done + ex) / (les.length + 3))}%"></i></div>`;
       el.querySelector('b').textContent = `${gr.name}: ${gr.title}`;
       el.title = gr.goal;
-      if (gradeOpen(gr)) el.onclick = () => selectLesson(nextIn(gr).id);
+      if (gradeOpen(gr) && !placement) el.onclick = () => selectLesson(nextIn(gr).id);
       box.appendChild(el);
     }
   }
   $('cGrade').onchange = () => selectLesson(nextIn(COURSE[+$('cGrade').value]).id);
   $('cLesson').onchange = () => selectLesson($('cLesson').value);
   $('cTempo').onchange = () => { if (running) stop(); trainerMsg = ''; renderCourse(); play = buildPlay(); };
+  // ---- Placement test: two short pieces per grade, harder each time; stop at the first grade you can't pass ----
+  const PLACE_DEF = [
+    [[G, '8th-note rock', 80], [R, 'Single strokes (8ths)', 90]],
+    [[G, '8th rock with fills', 90], [R, 'Single paradiddle', 90]],
+    [[G, '16th-note hats', 80], [F, 'One-beat fill', 90]],
+    [[G, 'One-drop (reggae)', 90], [R, 'Five-stroke roll', 80]],
+    [[G, 'Ghost-note groove', 90], [R, 'Six-stroke roll', 90]],
+    [[G, 'Funk 16ths', 100], [TS, 'Bonham triplets', 100]],
+  ];
+  const PLACE_NEED = 0.8;
+  const PLACE = PLACE_DEF.flatMap((pair, gi) => pair.map(([cat, name, bpm], i) => ({ id: `pl${gi}:${i}`, gi, n: i + 1, exam: false, place: true, cat, name, bpm, bars: 4, need: PLACE_NEED,
+    drill: DRILLS.find(d => d.cat === cat && d.name === name) })));
+  let placement = null; // { step, results: [acc...] }
+  function startPlacement() {
+    if (running) stop();
+    placement = { step: 0, results: [] }; trainerMsg = 'Placement test: press Start (or Enter) when you are ready.';
+    $('cTempo').value = '100'; refreshSourceUI();
+  }
+  function endPlacement(placed) {
+    placement = null; cProg.placed = placed; cProg.best = cProg.best || {};
+    cProg.pos = nextIn(COURSE[placed]).id; saveCourse();
+    trainerMsg = placed === 0 ? '🎯 Placement done: start at Debut. Welcome aboard!' : `🎯 Placement done: you start at ${COURSE[placed].name}: ${COURSE[placed].title}.`;
+    refreshSourceUI();
+  }
+  function placementResult(acc) {
+    const P = PLACE[placement.step], pct = Math.round(acc * 100);
+    placement.results[placement.step] = acc;
+    const pairDone = P.n === 2, pairOk = pairDone && placement.results[placement.step - 1] >= PLACE_NEED && acc >= PLACE_NEED;
+    if (acc < PLACE_NEED - 0.2 || (pairDone && !pairOk)) { endPlacement(P.gi); return trainerMsg; }  // this grade is the right start
+    if (placement.step + 1 >= PLACE.length) { endPlacement(COURSE.length - 1); return trainerMsg; }
+    placement.step++;
+    const id = ++runId;
+    setTimeout(() => { if (id === runId && !running && placement) start(); }, 2500);
+    renderCourse();
+    return `${pct}%. Next piece in a moment…`;
+  }
+  function renderPlacement() {
+    const P = PLACE[placement.step];
+    $('cGrade').disabled = $('cLesson').disabled = $('cTempo').disabled = true;
+    $('cBpm').textContent = P.bpm;
+    const done = placement.results.filter(x => x !== undefined);
+    $('cCard').innerHTML = `<div class="kicker">Placement test · piece ${placement.step + 1} of up to ${PLACE.length}</div><h3></h3><p class="d"></p>
+      <div class="req"><span class="pill exam">${COURSE[P.gi].name} level</span><span class="pill">${P.bars} bars at ${P.bpm} BPM</span>
+      ${done.map(a => `<span class="pill ${a >= PLACE_NEED ? 'ok' : ''}">${Math.round(a * 100)}%</span>`).join('')}</div>`;
+    $('cCard').querySelector('h3').textContent = P.name;
+    $('cCard').querySelector('.d').textContent = (P.drill ? P.drill.desc + ' ' : '') + 'Play your best: the test stops at the first level that is too hard.';
+    $('cNext').hidden = false; btnText('cNext', 'Stop the test here'); $('cNext').classList.remove('primary');
+    $('cNext').onclick = () => { if (running) stop(); endPlacement(PLACE[placement.step].gi); };
+    renderGradesList(COURSE[P.gi]);
+  }
+  // ---- Profile UI ----
+  function renderProfile() {
+    const sel = $('pSel'); sel.innerHTML = '';
+    for (const [id, pr] of Object.entries(profs.list)) sel.add(new Option(pr.name, id));
+    sel.value = profs.current || '';
+    const pr = profs.list[profs.current];
+    $('pAvatar').textContent = pr ? (pr.name.trim()[0] || '?').toUpperCase() : '?';
+    const done = COURSE.filter(examsDone).length;
+    $('pLevel').textContent = placement ? 'Taking the placement test…' : pr ? `Started at ${COURSE[cProg.placed || 0].name} · ${done} grade exam${done === 1 ? '' : 's'} passed` : '';
+    $('pDelete').hidden = Object.keys(profs.list).length < 2;
+  }
+  function openProfileModal(first) {
+    $('pModal').hidden = false; $('pmName').value = ''; $('pmCancel').hidden = !!first; setTimeout(() => $('pmName').focus(), 30);
+  }
+  function createProfile(takeTest) {
+    const name = $('pmName').value.trim() || `Player ${Object.keys(profs.list).length + 1}`;
+    const id = 'p' + Date.now().toString(36);
+    profs.list[id] = { name, prog: blankProg() }; profs.current = id; cProg = profs.list[id].prog; saveCourse();
+    $('pModal').hidden = true; placement = null; trainerMsg = `Hi ${name}!`;
+    if (takeTest) startPlacement(); else { cProg.pos = '0:0'; saveCourse(); refreshSourceUI(); }
+  }
+  $('pmTest').onclick = () => createProfile(true);
+  $('pmZero').onclick = () => createProfile(false);
+  $('pmCancel').onclick = () => { $('pModal').hidden = true; };
+  $('pmName').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') createProfile(true); });
+  $('pNew').onclick = () => openProfileModal(false);
+  $('pSel').onchange = () => { if (running) stop(); placement = null; profs.current = $('pSel').value; cProg = profs.list[profs.current].prog; saveCourse(); trainerMsg = ''; refreshSourceUI(); };
+  $('pRetest').onclick = () => startPlacement();
+  $('pDelete').onclick = () => {
+    const pr = profs.list[profs.current]; if (!pr) return;
+    if ($('pDelete').dataset.armed !== '1') { $('pDelete').dataset.armed = '1'; btnText('pDelete', `Tap again to delete ${pr.name}`); setTimeout(() => { $('pDelete').dataset.armed = ''; btnText('pDelete', 'Delete this player'); }, 3000); return; }
+    delete profs.list[profs.current]; profs.current = Object.keys(profs.list)[0] || null;
+    cProg = profs.current ? profs.list[profs.current].prog : blankProg(); saveCourse(); try { localStorage.setItem(PROF_KEY, JSON.stringify(profs)); } catch (e) {}
+    $('pDelete').dataset.armed = ''; btnText('pDelete', 'Delete this player'); refreshSourceUI();
+  };
   $('cUnlock').checked = !!cProg.unlock;
   $('cUnlock').onchange = () => { cProg.unlock = $('cUnlock').checked; saveCourse(); renderCourse(); };
   const patternSel = $('patternSel');
