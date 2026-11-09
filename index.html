@@ -374,6 +374,26 @@
   .acrows { display: flex; flex-direction: column; gap: 4px; }
   .acrow { display: grid; grid-template-columns: 140px 50px 1fr; gap: 10px; align-items: baseline; font-size: 13px; } .acrow b { color: var(--warn, #f2c14e); } .acrow b.kgok { color: var(--good); } .acrow em { color: var(--muted); font-style: normal; font-size: 12px; }
   .aclive { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; color: var(--muted); font-size: 13px; } .aclive span { background: var(--surface-3); border-radius: 8px; padding: 4px 9px; } .aclive span.new { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .labcard { width: min(760px, 100%); }
+  .labform { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; } .labform .wide { grid-column: 1 / -1; }
+  .labform input, .labform select, .labform textarea { width: 100%; box-sizing: border-box; }
+  .labform textarea { background: var(--surface-2, #171a22); color: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; resize: vertical; }
+  .labprog { height: 4px; border-radius: 4px; background: var(--surface-3); overflow: hidden; } .labprog i { display: block; height: 100%; background: var(--accent); }
+  .labnow { display: flex; gap: 18px; align-items: center; padding: 14px; border-radius: 14px; background: var(--surface-2, #171a22); border: 1px solid var(--line); transition: background .08s; }
+  .labnow.hit { background: rgba(124,131,255,.18); } .labnow h2 { margin: 0 0 4px; font-size: 26px; } .labnow p { margin: 0; }
+  .labpulse { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--accent); }
+  .labcue { margin-top: 8px !important; font-size: 18px; font-weight: 600; }
+  .dyn { padding: 2px 8px; border-radius: 6px; font-weight: 800; letter-spacing: .04em; } .dyn.soft { background: rgba(61,220,151,.18); color: var(--good); } .dyn.hard { background: rgba(255,107,107,.18); color: #ff8080; }
+  .labstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .labstat { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2, #171a22); border: 1px solid var(--line); }
+  .labstat b { font-size: 22px; } .labstat.big b { font-size: 30px; } .labstat span { font-size: 12px; font-weight: 600; } .labstat em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+  .labmid { color: #f2c14e; } .labbad { color: #ff8080; } b.kgok, td.kgok { color: var(--good); }
+  .labtable { overflow-x: auto; } .labtable table { width: 100%; border-collapse: collapse; font-size: 13px; } .labtable th { text-align: left; font-size: 11px; color: var(--faint); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .labtable td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } .labheard { color: var(--muted); font-size: 12px; } .labacts { white-space: nowrap; text-align: right; } .labacts button { margin-left: 4px; }
+  .labhist { display: flex; flex-direction: column; gap: 6px; } .labhrow { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+  .labhtxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; } .labhtxt span { font-size: 12.5px; } .labhtxt em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+  #labRun .kgkit { max-height: 42vh; object-fit: contain; }
+  @media (max-width: 560px) { .labform { grid-template-columns: 1fr; } .labnow { flex-direction: column; align-items: flex-start; } .labpulse { width: 44px; height: 44px; } .labnow h2 { font-size: 22px; } }
   .kgunk { background: rgba(242,193,78,.1); border: 1px solid rgba(242,193,78,.35); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
   .kgunk .chipset button { height: 28px; }
   .kgmodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -579,7 +599,7 @@
         <div class="row"><label class="sw"><input id="acOn" type="checkbox"> I play an acoustic kit (listen with a microphone)</label></div>
         <div class="row"><label>Microphone <select id="acDev"><option value="">Default microphone</option></select></label></div>
       </div>
-      <div class="btns"><button id="acCal"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate my drums</span></button></div>
+      <div class="btns"><button id="acCal"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate my drums</span></button><button id="acLab" class="ghost"><svg class="ic"><use href="#i-target"/></svg><span class="t">Test lab: compare mics and spots</span></button></div>
       <p class="hint" id="acInfo"></p>
       <p class="hint">The app learns the sound of each drum (and, optionally, pairs hit together) and how loud your soft and hard hits are. Wear headphones so the mic only hears the kit. Then run <b>Calibrate latency</b> above with the mic on.</p>
       <h2>Companion app</h2>
@@ -605,6 +625,12 @@
   <div class="mcard kgcard" role="dialog" aria-label="Acoustic kit setup">
     <div id="acBody"></div>
     <div class="rbtns"><button id="acCancel" class="ghost">Close</button><span class="spacer"></span><button id="acBack" class="ghost">Back</button><button id="acRedo" class="ghost">Redo</button><button id="acSkip" class="ghost">Skip</button><button id="acNext" class="primary"><span class="t">Start</span></button></div>
+  </div>
+</div>
+<div id="labModal" class="modal" hidden>
+  <div class="mcard kgcard labcard" role="dialog" aria-label="Acoustic test lab">
+    <div id="labBody"></div>
+    <div class="rbtns"><button id="labClose" class="ghost">Close</button><span class="spacer"></span><button id="labBack" class="ghost">Back</button><button id="labNext" class="primary"><span class="t">Next</span></button></div>
   </div>
 </div>
 <div id="kgModal" class="modal" hidden>
@@ -5069,6 +5095,7 @@ function midiToSong(mid, name, opts = {}) {
   function acVel(M, id, db) { const L = M.lv[id]; if (!L) return 100; return Math.max(1, Math.min(127, Math.round(35 + (db - L.lo) / Math.max(1, L.hi - L.lo) * 80))); }
   // a recognised hit becomes a normal pad hit (with its audio-clock time)
   function acOnHit(ev) {
+    labDet(ev);
     if (ACX.listen) { ACX.listen(ev); return; }
     const M = ACX.model; if (!M) return;
     const r = acDecide(M, ev.f);
@@ -5092,7 +5119,7 @@ function midiToSong(mid, name, opts = {}) {
       sink.gain.value = 0; src.connect(node).connect(sink).connect(ac.destination);
       ACX.det = makeDetector(ac.sampleRate, { onHit: acOnHit, onFrame: (fr) => { if (ACX.onFrame) ACX.onFrame(fr); } });
       if (ACX.model) { ACX.det.noiseDb = ACX.model.noiseDb ?? -75; }
-      node.port.onmessage = (e) => ACX.det.push(e.data.d, e.data.t);
+      node.port.onmessage = (e) => { labTap(e.data.d, e.data.t); ACX.det.push(e.data.d, e.data.t); };
       micGrace = 0.09; Object.assign(ACX, { stream, src, node, sink, running: true, devName: stream.getAudioTracks()[0]?.label || 'Microphone' });
       const s = stream.getAudioTracks()[0]?.getSettings?.(); if (s && s.deviceId) ACX.devId = s.deviceId;
       acStatus(); return true;
@@ -5121,13 +5148,17 @@ function midiToSong(mid, name, opts = {}) {
   }
   // ---- Calibration wizard ----
   const acw = { step: 'intro', i: 0, rec: null, cur: [], frames: [], back: null, live: [] };
-  function acWizard(from) {
+  function acWizard(from, step = 'intro') {
     if (running) stop(); closeBrowse();
-    acw.back = from || null; acw.step = 'intro'; acw.i = 0; acw.cur = [];
+    acw.back = from || null; acw.step = step; acw.i = 0; acw.cur = []; acw.finished = false; acw.model = null;
     acw.rec = { singles: {}, combos: [], noiseDb: -75 };
-    $('acModal').hidden = false; acFillDevices().then(acRender); acRender();
+    $('acModal').hidden = false; acFillDevices().then(() => { if (acw.step === 'intro') acRender(); }); acRender();
   }
-  function acClose() { ACX.listen = null; ACX.onFrame = null; $('acModal').hidden = true; if (acw.back === 'guide') { kg.active = true; $('kgModal').hidden = false; kg.step = 2; kgRender(); } }
+  function acClose() {
+    ACX.listen = null; ACX.onFrame = null; clearTimeout(acw.tm); $('acModal').hidden = true;
+    if (acw.back === 'guide') { kg.active = true; $('kgModal').hidden = false; kg.step = 2; kgRender(); }
+    if (acw.back === 'lab') { $('labModal').hidden = false; if (acw.finished) { TL.calNew = true; TL.calRec = acw.rec; TL.step = 'ready'; } labRender(); }
+  }
   function acKit(hl) { // the kit drawing, with the drum(s) to hit highlighted
     const lanesOf = new Set(hl.map(id => acSound(id)?.lane));
     let svg = `<svg class="kgkit" viewBox="0 0 700 380" role="img" aria-label="Kit">`;
@@ -5212,7 +5243,7 @@ function midiToSong(mid, name, opts = {}) {
         const el = $('acLive'); if (el) el.innerHTML = acw.live.map((x, i) => `<span class="${i ? '' : 'new'}">${esc(x)}</span>`).join('');
       };
       btnText('acNext', 'Finish');
-      $('acNext').onclick = () => { ACX.model = M; ACX.on = true; if (ACX.det) { ACX.det.noiseDb = M.noiseDb; if (acw.rec.eps) acw.rec.eps.forEach((v, b) => ACX.det.eps[b] = v); } M.eps = acw.rec.eps; acSave(); acStatus(); acw.model = null; acClose(); };
+      $('acNext').onclick = () => { acw.finished = true; ACX.model = M; ACX.on = true; if (ACX.det) { ACX.det.noiseDb = M.noiseDb; if (acw.rec.eps) acw.rec.eps.forEach((v, b) => ACX.det.eps[b] = v); } M.eps = acw.rec.eps; acSave(); acStatus(); acw.model = null; acClose(); };
     }
   }
   function acAdvance() {
@@ -5251,7 +5282,311 @@ function midiToSong(mid, name, opts = {}) {
   }
   acStatus(); if (navigator.mediaDevices) acFillDevices();
   // test hook: feed audio straight into the detector (no microphone)
-  window.__acoustic = { ACX, makeDetector, acTrain, acDecide, AC_SOUNDS, AC_COMBOS, audioNow: () => now(), sr: () => { ensureAudio(); return ac.sampleRate; }, feed(data, t0) { if (!ACX.det) { ensureAudio(); ACX.det = makeDetector(ac.sampleRate, { onHit: acOnHit, onFrame: (fr) => { if (ACX.onFrame) ACX.onFrame(fr); } }); ACX.running = true; ACX.devName = 'Test input'; micGrace = 0.09; } ACX.det.push(data, t0); }, acw, acRender, acWizard };
+  window.__acoustic = { ACX, makeDetector, acTrain, acDecide, AC_SOUNDS, AC_COMBOS, audioNow: () => now(), sr: () => { ensureAudio(); return ac.sampleRate; }, feed(data, t0) { if (!ACX.det) { ensureAudio(); ACX.det = makeDetector(ac.sampleRate, { onHit: acOnHit, onFrame: (fr) => { if (ACX.onFrame) ACX.onFrame(fr); } }); ACX.running = true; ACX.devName = 'Test input'; micGrace = 0.09; } labTap(data, t0); ACX.det.push(data, t0); }, acw, acRender, acWizard };
+  // ===================== Acoustic test lab =====================
+  // A fixed test you can run with any mic, placement and room. It records the mic audio, every detected hit (with its
+  // fingerprint) and what you were asked to play, scores it, and exports it all as one file to send back for tuning.
+  const LAB_VER = 'lab-1', LAB_COND_KEY = 'drumHighway.labCond.v1', LAB_DB = 'drumHighwayLab', LAB_KEEP = 12;
+  const LAB_FIELDS = [
+    { id: 'tester', label: 'Your name (optional)', type: 'text', ph: 'Rowil' },
+    { id: 'kit', label: 'Drum kit', type: 'text', ph: 'e.g. Pearl Roadshow 5-piece, Zildjian cymbals' },
+    { id: 'room', label: 'Room', type: 'select', opts: ['Bedroom', 'Living room', 'Garage', 'Basement', 'Studio / rehearsal room', 'Church / hall', 'Classroom', 'Outdoors', 'Other'] },
+    { id: 'noise', label: 'Background noise', type: 'select', opts: ['Quiet', 'Some (fan, AC, traffic)', 'Noisy (people, music)'] },
+    { id: 'mic', label: 'Microphone', type: 'select', opts: ['Phone mic', 'Laptop built-in mic', 'Tablet mic', 'USB mic', 'Webcam mic', 'Headset mic', 'Studio mic via audio interface', 'Other'] },
+    { id: 'micModel', label: 'Phone / computer / mic model', type: 'text', ph: 'e.g. iPhone 13, Shure SM57 + Focusrite' },
+    { id: 'place', label: 'Where the mic is', type: 'select', opts: ['In front of the kit', "Drummer's left (hi-hat side)", "Drummer's right (floor tom side)", 'Behind the drummer', 'Above the kit (overhead)', 'Next to the kick', 'Other'] },
+    { id: 'height', label: 'Mic height', type: 'select', opts: ['On the floor', 'Knee / table height', 'Chest height', 'Head height', 'Above the cymbals'] },
+    { id: 'dist', label: 'Distance to the snare (m)', type: 'number', ph: '1.5' },
+    { id: 'heads', label: 'Drums', type: 'select', opts: ['Normal heads, no muffling', 'Some muffling (gels, rings, towel)', 'Heavily muffled / low-volume cymbals', 'Mesh heads / practice pads'] },
+    { id: 'phones', label: 'Click in headphones?', type: 'select', opts: ['Yes, headphones', 'No (visual beat only)', 'No, click on speakers'] },
+    { id: 'notes', label: 'Notes', type: 'textarea', ph: 'Anything unusual: mic in a case, door open, played with brushes…' },
+  ];
+  const TL = { step: 'intro', cond: {}, rec: null, recT0: null, recN: 0, dets: [], calRec: null, calNew: false, script: null, run: null, result: null, session: null, raf: 0 };
+  try { TL.cond = JSON.parse(localStorage.getItem(LAB_COND_KEY) || '{}'); } catch (e) {}
+  // ---- recording (mono 16-bit, capped at 12 minutes) ----
+  function labTap(d, t) {
+    if (!TL.rec) return;
+    if (TL.recT0 === null) TL.recT0 = t;
+    if (TL.recN > ac.sampleRate * 720) return;
+    const q = new Int16Array(d.length); for (let i = 0; i < d.length; i++) q[i] = Math.max(-32768, Math.min(32767, Math.round(d[i] * 32767)));
+    TL.rec.push(q); TL.recN += d.length;
+  }
+  const labT = (t) => +(t - (TL.recT0 ?? t)).toFixed(4); // seconds into the recording
+  function labCtx() {
+    if (!$('acModal').hidden) {
+      const c = acw.step === 'sound' ? [AC_SOUNDS[acw.i]?.id] : acw.step === 'combo' ? AC_COMBOS.filter(x => x.every(id => acw.rec.singles[id]))[acw.i] : null;
+      return { phase: 'calibrate', step: acw.step, target: c || null };
+    }
+    return { phase: TL.run && TL.run.active ? 'test' : 'idle' };
+  }
+  function labDet(ev) { // every hit the detector finds while the lab is recording
+    if (!TL.rec) return;
+    const M = ACX.model, r = M ? acDecide(M, ev.f) : null;
+    TL.dets.push({ t: labT(ev.t), at: ev.t, db: +ev.db.toFixed(2), f: ev.f.map(x => +x.toPrecision(4)), ...labCtx(),
+      got: r ? r.ids : null, sim: r ? +r.sim.toFixed(4) : null, rel: r ? +r.rel.toFixed(4) : null, share: r ? Object.fromEntries(Object.entries(r.share).map(([k, v]) => [k, +v.toFixed(3)])) : null,
+      vel: r ? Object.fromEntries(r.ids.map(id => [id, acVel(M, id, ev.db + (r.ids.length > 1 ? 10 * Math.log10(Math.max(0.05, r.share[id] || 0.5)) : 0))])) : null });
+  }
+  // ---- the test ----
+  function labScript(M, bpm = 80) {
+    const beat = 60 / bpm, has = (id) => M.ids.includes(id), groups = [];
+    let t = 4 * beat; // 4 clicks to count in
+    const group = (sec, title, sub, notes, gap = 2) => { if (!notes.length) return; groups.push({ sec, title, sub, notes, t0: notes[0].t, t1: notes[notes.length - 1].t + beat * 0.6 }); t = notes[notes.length - 1].t + beat * (1 + gap); };
+    const nm = (id) => acSound(id).name;
+    for (const id of M.ids) group('singles', nm(id), 'One hit per click: soft, hard, soft, hard, soft, hard', Array.from({ length: 6 }, (_, k) => ({ t: t + k * beat, ids: [id], dyn: k % 2 ? 'hard' : 'soft' })));
+    for (const c of AC_COMBOS) if (c.every(has)) group('pairs', `${nm(c[0])} + ${nm(c[1])}`, 'Both together on each click: soft, hard, soft, hard', Array.from({ length: 4 }, (_, k) => ({ t: t + k * beat, ids: c.slice(), dyn: k % 2 ? 'hard' : 'soft' })));
+    const hat = has('hh') ? 'hh' : has('ride') ? 'ride' : null;
+    if (hat && has('kick') && has('snare')) {
+      const n = []; for (let bar = 0; bar < 4; bar++) for (let e = 0; e < 8; e++) { const ids = [hat]; if (e === 0 || e === 4 || e === 5) ids.push('kick'); if (e === 2 || e === 6) ids.push('snare'); n.push({ t: t + (bar * 8 + e) * beat / 2, ids, dyn: null }); }
+      group('groove', 'Rock groove, 4 bars', `8th notes on the ${nm(hat).toLowerCase()}, kick on 1, 3 and the "and" of 3, snare on 2 and 4`, n);
+    }
+    if (has('snare')) group('fast', 'Snare 16th notes, 1 bar', 'Four even hits per click', Array.from({ length: 16 }, (_, k) => ({ t: t + k * beat / 4, ids: ['snare'], dyn: null })));
+    if (hat) group('fast', `${nm(hat)} 16th notes, 1 bar`, 'Four even hits per click', Array.from({ length: 16 }, (_, k) => ({ t: t + k * beat / 4, ids: [hat], dyn: null })));
+    const toms = ['tom1', 'tom2', 'tom3'].filter(has);
+    if (toms.length) {
+      const n = []; toms.forEach((id, i) => { for (let k = 0; k < 4; k++) n.push({ t: t + (i * 4 + k) * beat / 4, ids: [id], dyn: null }); });
+      const end = t + toms.length * beat; if (has('crash') && has('kick')) n.push({ t: end, ids: ['kick', 'crash'], dyn: null });
+      group('fill', 'Tom fill', `16th notes: 4 on each tom, high to low${has('crash') && has('kick') ? ', then kick + crash on the next click' : ''}`, n);
+    }
+    groups.push({ sec: 'silence', title: 'Stay still', sub: 'Don’t touch the kit for 6 seconds (checks for false hits)', notes: [], t0: t, t1: t + 6 }); t += 6.5;
+    return { bpm, beat, groups, notes: groups.flatMap(g => g.notes.map(n => ({ ...n, sec: g.sec, group: g.title }))), len: t };
+  }
+  function labScore(S, dets, t0) { // dets: test-phase detections with .at (audio time); expected notes at t0 + n.t
+    const exp = S.notes.map((n, i) => ({ ...n, i, at: t0 + n.t }));
+    // overall offset (mic + you) from nearest detections, then match each note inside a window around it
+    const near = exp.map(e => { let b = null; for (const d of dets) if (Math.abs(d.at - e.at) < 0.2 && (!b || Math.abs(d.at - e.at) < Math.abs(b.at - e.at))) b = d; return b ? b.at - e.at : null; }).filter(x => x !== null).sort((a, b) => a - b);
+    const off = near.length ? near[near.length >> 1] : 0;
+    const used = new Set();
+    exp.forEach((e, k) => {
+      const gap = Math.min(...[exp[k - 1], exp[k + 1]].filter(Boolean).map(o => Math.abs(o.at - e.at)), 1);
+      const win = Math.min(0.11, gap * 0.45); let b = -1;
+      dets.forEach((d, j) => { if (used.has(j)) return; const a = Math.abs(d.at - e.at - off); if (a <= win && (b < 0 || a < Math.abs(dets[b].at - e.at - off))) b = j; });
+      if (b >= 0) { used.add(b); const d = dets[b]; e.det = j2(d); e.dt = +((d.at - e.at) * 1000).toFixed(1); e.ok = sameSet(d.got || [], e.ids); e.part = e.ids.some(x => (d.got || []).includes(x)); }
+      else e.ok = false;
+    });
+    function j2(d) { return { t: d.t, got: d.got, db: d.db, vel: d.vel, sim: d.sim }; }
+    const extra = dets.filter((d, j) => !used.has(j)).map(d => ({ t: d.t, got: d.got, db: d.db, sec: (S.groups.find(g => d.at >= t0 + g.t0 - 0.3 && d.at <= t0 + g.t1 + 0.3) || {}).sec || 'between', dbl: dets.some((o, j) => used.has(j) && d.at - o.at > 0 && d.at - o.at < 0.08) }));
+    const pct = (a, b) => b ? Math.round(a / b * 100) : null;
+    const sec = (s) => { const n = exp.filter(e => e.sec === s); return n.length ? { n: n.length, found: n.filter(e => e.det).length, right: n.filter(e => e.ok).length } : null; };
+    const drums = {};
+    for (const e of exp.filter(e => e.sec === 'singles')) {
+      const id = e.ids[0], D = drums[id] = drums[id] || { n: 0, found: 0, right: 0, heard: {}, soft: [], hard: [] };
+      D.n++; if (e.det) D.found++; if (e.ok) D.right++;
+      if (e.det && !e.ok) { const k = (e.det.got || ['?']).join(' + '); D.heard[k] = (D.heard[k] || 0) + 1; }
+      if (e.det) D[e.dyn].push(e.det.db);
+    }
+    for (const id in drums) { const D = drums[id], m = (a) => a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : null; D.softDb = m(D.soft); D.hardDb = m(D.hard); D.dynGap = D.softDb !== null && D.hardDb !== null ? +(D.hardDb - D.softDb).toFixed(1) : null; delete D.soft; delete D.hard; }
+    const pairs = {}; for (const e of exp.filter(e => e.sec === 'pairs')) { const k = e.ids.join('+'), P = pairs[k] = pairs[k] || { n: 0, found: 0, right: 0, heard: {} }; P.n++; if (e.det) P.found++; if (e.ok) P.right++; if (e.det && !e.ok) { const h = (e.det.got || ['?']).join(' + '); P.heard[h] = (P.heard[h] || 0) + 1; } }
+    const dts = exp.filter(e => e.det && e.sec !== 'silence').map(e => e.dt).sort((a, b) => a - b), q = (p) => dts.length ? dts[Math.min(dts.length - 1, Math.floor(dts.length * p))] : null;
+    const all = exp.length;
+    return {
+      overall: { notes: all, found: exp.filter(e => e.det).length, right: exp.filter(e => e.ok).length, foundPct: pct(exp.filter(e => e.det).length, all), rightPct: pct(exp.filter(e => e.ok).length, all) },
+      sections: Object.fromEntries(['singles', 'pairs', 'groove', 'fast', 'fill'].map(s => [s, sec(s)]).filter(x => x[1])),
+      drums, pairs,
+      falseHits: { silence: extra.filter(x => x.sec === 'silence').length, doubles: extra.filter(x => x.dbl).length, other: extra.filter(x => x.sec !== 'silence' && !x.dbl).length },
+      timing: { offsetMs: +(off * 1000).toFixed(1), medianMs: q(0.5), p10Ms: q(0.1), p90Ms: q(0.9) },
+      expected: exp.map(e => ({ t: labT(e.at), ids: e.ids, dyn: e.dyn, sec: e.sec, got: e.det ? e.det.got : null, dt: e.dt ?? null, db: e.det ? e.det.db : null, vel: e.det ? e.det.vel : null, ok: e.ok })),
+      extra,
+    };
+  }
+  function labStartRun() {
+    const M = ACX.model; ensureAudio();
+    const S = TL.script = labScript(M), t0 = now() + 0.6, click = TL.cond.phones !== 'No (visual beat only)';
+    if (click) { for (let b = 0; b * S.beat < S.len - 6.5; b++) scheduleClick(t0 + b * S.beat, b < 4 || S.groups.some(g => Math.abs(g.t0 - b * S.beat) < 0.01)); }
+    TL.run = { active: true, t0, dets: [] };
+    TL.dets.push({ t: labT(t0), marker: 'test-start', bpm: S.bpm });
+    ACX.listen = (ev) => { const r = acDecide(M, ev.f); TL.run.dets.push({ at: ev.t, t: labT(ev.t), db: +ev.db.toFixed(2), got: r.ids, sim: +r.sim.toFixed(4), vel: Object.fromEntries(r.ids.map(id => [id, acVel(M, id, ev.db)])) }); };
+    TL.step = 'run'; labRender();
+    const tick = () => {
+      if (!TL.run || !TL.run.active) return;
+      const t = now() - t0, k = labRunKey(t); if (k !== TL.runKey) { TL.runKey = k; labRunView(t); }
+      if (t > S.len) { labEndRun(); return; }
+      TL.raf = requestAnimationFrame(tick);
+    };
+    TL.raf = requestAnimationFrame(tick);
+  }
+  function labRunKey(t) { // redraw only when something on screen changes
+    const S = TL.script, g = S.groups.find(x => t < x.t1) || S.groups[S.groups.length - 1];
+    return [S.groups.indexOf(g), g.notes.findIndex(n => n.t > t - 0.06), g.notes.some(x => Math.abs(x.t - t) < 0.07), Math.floor(t / S.beat), Math.floor((t % S.beat) / S.beat * 6), Math.floor(t / S.len * 200)].join('|');
+  }
+  function labRunView(t) {
+    const S = TL.script, el = $('labRun'); if (!el) return;
+    const g = S.groups.find(x => t < x.t1) || S.groups[S.groups.length - 1], gi = S.groups.indexOf(g);
+    const count = t < 4 * S.beat ? 4 - Math.floor(t / S.beat) : null;
+    const nextN = g.notes.findIndex(n => n.t > t - 0.06), cur = nextN < 0 ? g.notes.length : nextN, n = g.notes[cur];
+    const flash = g.notes.some(x => Math.abs(x.t - t) < 0.07);
+    const lead = t < g.t0 ? Math.ceil((g.t0 - t) / S.beat) : 0;
+    const beatPh = (t % S.beat) / S.beat;
+    el.innerHTML = `<div class="labprog"><i style="width:${Math.min(100, t / S.len * 100)}%"></i></div>
+      <div class="kgkicker">Part ${gi + 1} of ${S.groups.length} · ${esc({ singles: 'single drums', pairs: 'pairs', groove: 'groove', fast: 'fast notes', fill: 'tom fill', silence: 'silence' }[g.sec])}</div>
+      <div class="labnow ${flash ? 'hit' : ''}"><div class="labpulse" style="transform:scale(${1.25 - beatPh * 0.25});opacity:${1 - beatPh * 0.7}"></div>
+        <div><h2>${count ? 'Count-in: ' + count : esc(g.title)}</h2><p>${esc(g.sub)}</p>
+        <p class="labcue">${lead ? `Starts in ${lead}…` : n ? `${n.dyn ? `<b class="dyn ${n.dyn}">${n.dyn.toUpperCase()}</b> · ` : ''}hit ${Math.min(cur + 1, g.notes.length)} of ${g.notes.length}` : g.sec === 'silence' ? 'Shh…' : 'Done ✓'}</p></div></div>
+      ${g.notes.length ? acKit(n ? n.ids : g.notes[0].ids) : ''}`;
+  }
+  function labEndRun() {
+    cancelAnimationFrame(TL.raf); ACX.listen = null;
+    const S = TL.script, R = TL.run; R.active = false;
+    TL.dets.push({ t: labT(now()), marker: 'test-end' });
+    TL.result = labScore(S, R.dets, R.t0);
+    TL.rec_ = TL.rec; TL.rec = null; // stop recording
+    labBuildSession(); labSaveSession(TL.session).catch(() => {});
+    TL.step = 'result'; labRender();
+  }
+  // ---- session file ----
+  function labDevice() {
+    const tr = ACX.stream && ACX.stream.getAudioTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
+    return { userAgent: navigator.userAgent, platform: navigator.userAgentData?.platform || navigator.platform, screen: `${screen.width}x${screen.height}@${devicePixelRatio}`, touch: navigator.maxTouchPoints || 0,
+      sampleRate: ac ? ac.sampleRate : null, baseLatency: ac?.baseLatency ?? null, outputLatency: ac?.outputLatency ?? null, micLabel: ACX.devName || null,
+      trackSettings: { echoCancellation: st.echoCancellation, noiseSuppression: st.noiseSuppression, autoGainControl: st.autoGainControl, sampleRate: st.sampleRate, channelCount: st.channelCount, latency: st.latency } };
+  }
+  function labBuildSession() {
+    const M = ACX.model, made = new Date();
+    TL.session = {
+      format: 'drum-highway-acoustic-lab', version: LAB_VER, app: 'dh-v13', id: made.toISOString().replace(/[:.]/g, '-'), date: made.toISOString(),
+      conditions: { ...TL.cond }, device: labDevice(), latencyMs: +$('latency').value || 0,
+      detector: { noiseDb: ACX.det ? +ACX.det.noiseDb.toFixed(2) : null, gate: ACX.det?.gate, minFlux: ACX.det?.minFlux, bands: AC_NB, fft: 1024, hop: 256 },
+      model: M ? { ids: M.ids, theta: M.theta, simThr: M.simThr, noiseDb: M.noiseDb, made: M.made, lv: M.lv, w: M.w.map(x => +x.toPrecision(4)), T: M.T.map(r => r.map(x => +x.toPrecision(4))), ex: M.ex, check: M.check } : null,
+      calibration: TL.calNew ? { inSession: true, singles: Object.fromEntries(Object.entries(TL.calRec?.singles || {}).map(([k, v]) => [k, v.map(x => ({ db: +x.db.toFixed(2), f: x.f.map(y => +y.toPrecision(4)) }))])), combos: (TL.calRec?.combos || []).map(x => ({ l: x.l, db: +x.db.toFixed(2), f: x.f.map(y => +y.toPrecision(4)) })) } : { inSession: false },
+      test: { bpm: TL.script.bpm, startT: labT(TL.run.t0), groups: TL.script.groups.map(g => ({ sec: g.sec, title: g.title, t0: g.t0, t1: g.t1, n: g.notes.length })) },
+      results: TL.result, detections: TL.dets,
+      audio: { sampleRate: ac.sampleRate, samples: TL.recN, seconds: +(TL.recN / ac.sampleRate).toFixed(2), file: 'audio.wav' },
+    };
+    TL.session._audio = TL.rec_;
+  }
+  function labWav(chunks, sr) {
+    const n = chunks.reduce((a, c) => a + c.length, 0), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    let o = 44; for (const c of chunks) { new Int16Array(buf, o, c.length).set(c); o += c.length * 2; }
+    return new Uint8Array(buf);
+  }
+  const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zipStore(files) { // [{name, data: Uint8Array}] -> Blob (no compression)
+    const parts = [], cen = []; let off = 0;
+    for (const f of files) {
+      const name = new TextEncoder().encode(f.name), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint32(14, crc, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, name.length, true);
+      parts.push(h.buffer, name, f.data);
+      const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      cen.push(c.buffer, name); off += 30 + name.length + f.data.length;
+    }
+    const cenLen = cen.reduce((a, b) => a + (b.byteLength ?? b.length), 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cenLen, true); e.setUint32(16, off, true);
+    return new Blob([...parts, ...cen, e.buffer], { type: 'application/zip' });
+  }
+  const labSlug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24);
+  function labFileName(S, ext) { const c = S.conditions || {}; return `drum-lab-${S.date.slice(0, 16).replace(/[-:T]/g, '')}-${labSlug(c.mic) || 'mic'}-${labSlug(c.place) || 'place'}.${ext}`; }
+  async function labExport(S, withAudio = true) {
+    const { _audio, ...json } = S, data = new TextEncoder().encode(JSON.stringify(json));
+    let blob, name;
+    if (withAudio && _audio && _audio.length) { blob = zipStore([{ name: 'session.json', data }, { name: 'audio.wav', data: labWav(_audio, S.audio.sampleRate) }]); name = labFileName(S, 'zip'); }
+    else { blob = new Blob([data], { type: 'application/json' }); name = labFileName(S, 'json'); }
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.maxTouchPoints > 0 && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Drum Highway test' }); return name; } catch (e) { if (e.name === 'AbortError') return null; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+    return name;
+  }
+  // ---- saved sessions (IndexedDB, so you can run several tests and export later, even on a phone) ----
+  function labDb() { return new Promise((res, rej) => { const r = indexedDB.open(LAB_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('s', { keyPath: 'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+  async function labStore(mode, fn) { const db = await labDb(); return new Promise((res, rej) => { const tx = db.transaction('s', mode), st = tx.objectStore('s'), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); }); }
+  async function labSaveSession(S) {
+    await labStore('readwrite', st => st.put(S));
+    const all = (await labStore('readonly', st => st.getAll())) || []; all.sort((a, b) => a.date < b.date ? 1 : -1);
+    for (const old of all.slice(LAB_KEEP)) await labStore('readwrite', st => st.delete(old.id));
+  }
+  const labList = async () => { try { const a = (await labStore('readonly', st => st.getAll())) || []; return a.sort((x, y) => x.date < y.date ? 1 : -1); } catch (e) { return []; } };
+  // ---- screens ----
+  function labOpen() { if (running) stop(); closeBrowse(); $('sModal').hidden = true; $('labModal').hidden = false; TL.step = 'intro'; labRender(); }
+  function labClose() {
+    if (TL.run && TL.run.active) { TL.run.active = false; cancelAnimationFrame(TL.raf); ACX.listen = null; }
+    TL.rec = null; $('labModal').hidden = true;
+  }
+  const condLine = (c) => [c.mic, c.micModel, c.place, c.height, c.dist ? c.dist + ' m' : '', c.room].filter(Boolean).join(' · ');
+  function labResultHtml(R, S) {
+    const pc = (a, b) => b ? Math.round(a / b * 100) + '%' : '–', cls = (a, b) => !b ? '' : a / b >= 0.9 ? 'kgok' : a / b >= 0.7 ? 'labmid' : 'labbad';
+    const rows = Object.entries(R.drums).map(([id, D]) => `<tr><td>${esc(acSound(id)?.name || id)}</td><td class="${cls(D.found, D.n)}">${pc(D.found, D.n)}</td><td class="${cls(D.right, D.n)}">${pc(D.right, D.n)}</td><td>${D.dynGap === null ? '–' : (D.dynGap > 0 ? '+' : '') + D.dynGap + ' dB'}</td><td class="labheard">${esc(Object.entries(D.heard).map(([k, v]) => `${k} ×${v}`).join(', '))}</td></tr>`).join('');
+    const prow = Object.entries(R.pairs).map(([k, P]) => `<tr><td>${esc(k.split('+').map(id => acSound(id)?.name || id).join(' + '))}</td><td class="${cls(P.found, P.n)}">${pc(P.found, P.n)}</td><td class="${cls(P.right, P.n)}">${pc(P.right, P.n)}</td><td></td><td class="labheard">${esc(Object.entries(P.heard).map(([h, v]) => `${h} ×${v}`).join(', '))}</td></tr>`).join('');
+    const sec = Object.entries(R.sections).map(([k, s]) => `<div class="labstat"><b class="${cls(s.right, s.n)}">${pc(s.right, s.n)}</b><span>${{ singles: 'Single drums', pairs: 'Pairs', groove: 'Groove', fast: 'Fast notes', fill: 'Tom fill' }[k] || esc(k)}</span><em>${s.found}/${s.n} heard</em></div>`).join('');
+    return `<div class="labstats"><div class="labstat big"><b class="${cls(R.overall.right, R.overall.notes)}">${R.overall.rightPct ?? '–'}%</b><span>Right drum(s)</span><em>${R.overall.found}/${R.overall.notes} hits heard</em></div>${sec}
+        <div class="labstat"><b class="${R.falseHits.silence + R.falseHits.doubles + R.falseHits.other ? 'labmid' : 'kgok'}">${R.falseHits.silence + R.falseHits.doubles + R.falseHits.other}</b><span>False hits</span><em>${R.falseHits.doubles} doubles · ${R.falseHits.silence} in silence</em></div>
+        <div class="labstat"><b>${R.timing.offsetMs > 0 ? '+' : ''}${Math.round(R.timing.offsetMs)} ms</b><span>Timing offset</span><em>spread ${R.timing.p10Ms === null ? '–' : Math.round(R.timing.p90Ms - R.timing.p10Ms)} ms</em></div></div>
+      <div class="labtable"><table><thead><tr><th>Drum</th><th>Heard</th><th>Right</th><th>Hard − soft</th><th>Mixed up with</th></tr></thead><tbody>${rows}${prow}</tbody></table></div>
+      ${S ? `<p class="hint">${esc(condLine(S.conditions))} · ${esc(S.device.micLabel || '')} · ${Math.round(S.audio.seconds)} s recorded</p>` : ''}`;
+  }
+  async function labRender() {
+    const B = $('labBody'), st = TL.step;
+    $('labBack').hidden = !(st === 'cond' || st === 'cal' || st === 'ready'); $('labNext').hidden = st === 'run';
+    $('labClose').textContent = st === 'run' ? 'Stop test' : 'Close';
+    if (st === 'intro') {
+      const list = await labList();
+      B.innerHTML = `<div class="kgkicker">Acoustic kit (beta) · test lab</div><h2>Test a mic setup</h2>
+        <p>Run the same test (about 6 minutes with calibration) with different mics, rooms and mic spots. The app records the mic, checks what it heard against what you were asked to play, and saves everything in one file you can send back for tuning.</p>
+        <ol class="actips"><li>Describe the setup (mic, where it is, room).</li><li>Calibrate your drums with that setup (recommended every time the mic moves).</li><li>Play along with the test: single drums soft and hard, pairs, a groove, fast notes, a tom fill, and a few seconds of silence.</li><li>See the results and export the file.</li></ol>
+        ${list.length ? `<div class="rsec"><h3>Your saved tests (${list.length})</h3><div class="labhist">${list.map(S => `<div class="labhrow"><div class="labhtxt"><b>${S.results.overall.rightPct ?? '–'}% right · ${S.results.falseHits.silence + S.results.falseHits.doubles + S.results.falseHits.other} false</b><span>${esc(condLine(S.conditions))}</span><em>${new Date(S.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${S.conditions.micModel ? ' · ' + esc(S.conditions.micModel) : ''}</em></div><div class="labacts"><button class="small ghost" data-view="${S.id}">View</button><button class="small ghost" data-exp="${S.id}">Export</button><button class="small ghost" data-del="${S.id}" title="Delete">✕</button></div></div>`).join('')}</div>
+          <div class="btns"><button id="labExpAll" class="ghost small">Export all results (no audio)</button></div></div>` : ''}`;
+      B.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { const S = list.find(x => x.id === b.dataset.view); TL.session = S; TL.result = S.results; TL.step = 'result'; labRender(); });
+      B.querySelectorAll('[data-exp]').forEach(b => b.onclick = async () => { const S = list.find(x => x.id === b.dataset.exp); b.disabled = true; await labExport(S, true); b.disabled = false; });
+      B.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { await labStore('readwrite', s => s.delete(b.dataset.del)); labRender(); });
+      if ($('labExpAll')) $('labExpAll').onclick = () => { const all = list.map(({ _audio, detections, ...s }) => s); const blob = new Blob([JSON.stringify({ format: 'drum-highway-acoustic-lab-summary', sessions: all })], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `drum-lab-all-${new Date().toISOString().slice(0, 10)}.json`; a.click(); };
+      btnText('labNext', 'New test');
+      $('labNext').onclick = () => { TL.step = 'cond'; labRender(); };
+    } else if (st === 'cond') {
+      B.innerHTML = `<div class="kgkicker">Step 1 of 4 · Setup</div><h2>Describe this setup</h2><div class="labform">${LAB_FIELDS.map(f => {
+        const v = TL.cond[f.id] ?? '';
+        const inp = f.type === 'select' ? `<select data-f="${f.id}">${f.opts.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`
+          : f.type === 'textarea' ? `<textarea data-f="${f.id}" rows="2" placeholder="${esc(f.ph || '')}">${esc(v)}</textarea>`
+          : `<input data-f="${f.id}" type="${f.type}" ${f.type === 'number' ? 'step="0.1" min="0" inputmode="decimal"' : ''} placeholder="${esc(f.ph || '')}" value="${esc(v)}">`;
+        return `<label class="field ${f.type === 'textarea' ? 'wide' : ''}"><span>${esc(f.label)}</span>${inp}</label>`; }).join('')}
+        <label class="field wide"><span>Microphone input on this device</span><select id="labDev"></select></label></div>
+        <p class="hint">${/Android|iPhone|iPad/i.test(navigator.userAgent) ? 'On a phone, keep the screen on and put the phone where you said; you can read the prompts from the drum stool.' : 'Tip: put the screen where you can read it from the drum stool.'}</p>`;
+      await acFillDevices(); const ds = $('labDev'); ds.innerHTML = $('acDev').innerHTML; ds.value = $('acDev').value;
+      btnText('labNext', 'Next');
+      $('labNext').onclick = () => {
+        B.querySelectorAll('[data-f]').forEach(el => TL.cond[el.dataset.f] = el.value.trim()); try { localStorage.setItem(LAB_COND_KEY, JSON.stringify(TL.cond)); } catch (e) {}
+        if (ds.value !== ACX.devId) { ACX.devId = ds.value; $('acDev').value = ds.value; acSave(); acStop(); }
+        TL.step = 'cal'; labRender();
+      };
+    } else if (st === 'cal') {
+      const M = ACX.model;
+      B.innerHTML = `<div class="kgkicker">Step 2 of 4 · Calibrate</div><h2>Teach the app your drums with this mic</h2>
+        <p>Recording starts now and covers the calibration too, so it can be re-checked later. Calibrating again is best whenever the mic, the room or the kit changes.</p>
+        <div class="kgstat"><span class="hint" id="labMic">Starting the microphone…</span></div>
+        <div class="btns"><button id="labCalNew" class="primary"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate now</span></button>${M ? `<button id="labCalOld" class="ghost">Use my current calibration (${M.ids.length} sounds)</button>` : ''}</div>`;
+      $('labNext').hidden = true;
+      const ok = await acStart();
+      $('labMic').textContent = ok ? '✓ Listening: ' + ACX.devName : $('acInfo').textContent;
+      if (!ok) return;
+      if (!TL.rec) { TL.rec = []; TL.recT0 = null; TL.recN = 0; TL.dets = []; TL.calRec = null; TL.calNew = false; }
+      $('labCalNew').onclick = () => { $('labModal').hidden = true; acWizard('lab', 'quiet'); };
+      if ($('labCalOld')) $('labCalOld').onclick = () => { TL.calNew = false; TL.step = 'ready'; labRender(); };
+    } else if (st === 'ready') {
+      const S = labScript(ACX.model);
+      B.innerHTML = `<div class="kgkicker">Step 3 of 4 · Test</div><h2>Play along: about ${Math.round(S.len / 60 * 2) / 2} minutes</h2>
+        <p>${TL.cond.phones === 'No (visual beat only)' ? 'There’s no click: follow the pulsing circle.' : 'Follow the click (80 BPM).'} The screen shows what to hit, and whether it’s <b class="dyn soft">SOFT</b> or <b class="dyn hard">HARD</b>. Don’t worry about mistakes; just play what it shows.</p>
+        <ol class="actips">${[...new Set(S.groups.map(g => g.sec))].map(s => `<li>${{ singles: 'Each drum, 6 hits', pairs: 'Pairs together, 4 hits each', groove: 'A rock groove, 4 bars', fast: '16th notes, snare and hi-hat', fill: 'A tom fill', silence: '6 seconds of silence' }[s]}</li>`).join('')}</ol>`;
+      btnText('labNext', 'Start the test');
+      $('labNext').onclick = () => labStartRun();
+    } else if (st === 'run') {
+      B.innerHTML = `<div id="labRun"></div>`;
+    } else if (st === 'result') {
+      const S = TL.session, R = TL.result;
+      B.innerHTML = `<div class="kgkicker">Step 4 of 4 · Results</div><h2>${R.overall.rightPct >= 90 ? 'This setup works well 🎉' : R.overall.rightPct >= 70 ? 'This setup mostly works' : 'This setup struggles'}</h2>
+        ${labResultHtml(R, S)}
+        <p class="hint">“Heard” = the app noticed a hit; “Right” = it named the right drum(s); “Hard − soft” = how much louder your hard hits were (higher is better for accents and ghost notes). Saved on this device. Export sends the results, every detected hit and the recording (${S._audio ? (S.audio.samples * 2 / 1e6).toFixed(1) + ' MB' : 'no audio'}).</p>
+        <div class="btns"><button id="labExp" class="primary"><svg class="ic"><use href="#i-down"/></svg><span class="t">Export test file</span></button><button id="labExpS" class="ghost">Export without audio</button><button id="labAgain" class="ghost">Test another setup</button></div><p class="hint" id="labExpInfo"></p>`;
+      $('labExp').onclick = async () => { $('labExpInfo').textContent = 'Preparing…'; const n = await labExport(S, true); $('labExpInfo').textContent = n ? 'Saved ' + n : ''; };
+      $('labExpS').onclick = async () => { const n = await labExport(S, false); $('labExpInfo').textContent = n ? 'Saved ' + n : ''; };
+      $('labAgain').onclick = () => { TL.step = 'cond'; labRender(); };
+      $('labNext').hidden = true;
+    }
+  }
+  $('labBack').onclick = () => { TL.step = { cond: 'intro', cal: 'cond', ready: 'cal' }[TL.step] || 'intro'; if (TL.step !== 'ready' && TL.step !== 'cal') TL.rec = null; labRender(); };
+  $('labClose').onclick = () => { if (TL.step === 'run') { TL.run.active = false; cancelAnimationFrame(TL.raf); ACX.listen = null; TL.step = 'ready'; labRender(); } else labClose(); };
+  $('acLab').onclick = labOpen;
+  if (/[?&#]lab\b/.test(location.search + location.hash)) setTimeout(labOpen, 300);
+  window.__lab = { TL, labScript, labScore, labOpen, labRender, labExport, labEndRun, zipStore, labWav, labList };
 
   const kg = { step: 0, active: false, found: {}, vel: {}, unk: null, resume: false };
   // top-down drawing of a kit (the drummer sits at the bottom)
