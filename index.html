@@ -196,6 +196,10 @@
   body.focus aside { width: 0 !important; opacity: 0; border-left-color: transparent; }
   body.focus .toolbar { opacity: .45; transition: opacity .3s; }
   body.focus .toolbar:hover { opacity: 1; }
+  /* Focus mode keeps the hit-sound switch on screen (the sidebar is hidden) */
+  #focusSound { position: absolute; top: 12px; left: 12px; z-index: 2; display: none; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+    background: rgba(20,22,28,.85); border: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+  body.focus #focusSound { display: flex; }
 
   /* score HUD */
   .hud { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
@@ -353,7 +357,8 @@
   </div>
 </div>
 <main>
-  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="stage"><canvas id="cv"></canvas>
+    <label id="focusSound" class="sw" title="Play the drum sound when you hit a pad or key"><input id="focusSoundOn" type="checkbox" checked> Drum sound</label></div>
   <aside>
     <section class="hud">
       <div class="hud-top">
@@ -674,6 +679,10 @@ function midiToSong(mid, name, opts = {}) {
   }
   const TAB_KEY = 'drumHighway.tab.v1', HIDE_KEY = 'drumHighway.autoHide.v1';
   try { if (localStorage.getItem(HIDE_KEY) === '0') $('autoHide').checked = false; } catch (e) {}
+  // the Focus mode switch mirrors "Play sounds when I hit"
+  $('focusSoundOn').checked = $('soundOnHit').checked;
+  $('focusSoundOn').addEventListener('change', () => { $('soundOnHit').checked = $('focusSoundOn').checked; $('soundOnHit').dispatchEvent(new Event('change')); $('focusSoundOn').blur(); });
+  $('soundOnHit').addEventListener('change', () => { $('focusSoundOn').checked = $('soundOnHit').checked; });
   $('autoHide').onchange = () => { try { localStorage.setItem(HIDE_KEY, $('autoHide').checked ? '1' : '0'); } catch (e) {} if (running) document.body.classList.toggle('focus', $('autoHide').checked); };
   function showTab(name) {
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
