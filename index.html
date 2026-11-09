@@ -122,6 +122,31 @@
   .mopt.primary span { color: var(--accent-ink); }
   #pmCancel { align-self: flex-end; }
   .mark.Placed { background: rgba(255,255,255,.08); color: var(--muted); }
+  .rcard { width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+  .rtop { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .rtop b { font: 800 34px var(--mono); color: var(--good); }
+  .rsec { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .rsec h3 { margin: 0; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+  .rsec .big { font-size: 15px; font-weight: 700; }
+  .rsec svg { width: 100%; height: auto; display: block; }
+  .rlane { display: grid; grid-template-columns: 82px 1fr 48px 62px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .rlane i { display: block; height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+  .rlane i s { display: block; height: 100%; text-decoration: none; }
+  .rlane em { font-style: normal; color: var(--muted); font-family: var(--mono); text-align: right; }
+  .rlane.weak { color: var(--ok); }
+  .rbars { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rbars span { background: var(--surface-3); border-radius: 6px; padding: 3px 8px; font-size: 12px; }
+  .rbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  #progBtn.done { color: var(--good); }
+  .ghead { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ghead > div { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .ghead small { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .ghead b { font-size: 17px; } .ghead em { font-style: normal; color: var(--muted); font-size: 12px; }
+  .gbar { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; } .gbar i { display: block; height: 100%; background: var(--good); }
+  .grun { display: grid; grid-template-columns: 44px 1fr 74px 64px; gap: 8px; font-size: 12.5px; align-items: center; }
+  .grun span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grun em { font-style: normal; font-family: var(--mono); color: var(--muted); text-align: right; }
+  @media (max-width: 560px) { .ghead { grid-template-columns: 1fr; } }
   .bpmread { height: 34px; display: flex; align-items: center; font: 700 15px var(--mono); padding: 0 4px; }
   /* course */
   .lesson { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 6px; }
@@ -246,13 +271,14 @@
     <select id="inputSel" title="MIDI input"><option value="">(no MIDI input)</option></select>
     <button id="connectBtn" class="ghost"><svg class="ic"><use href="#i-plug"/></svg><span class="t">Connect</span></button>
   </div>
+  <button id="progBtn" class="ghost" title="Your practice progress"><span class="t">0/15 min</span></button>
   <button id="startBtn" class="primary"><svg class="ic"><use href="#i-play"/></svg><span class="t">Start</span><kbd>Enter</kbd></button>
 </header>
 <div class="toolbar">
   <div class="fields" id="songCtl">
     <label class="field grow"><span>Song</span><select id="patternSel"><option value="">(pick or load a song)</option></select></label>
     <button id="libBtn" class="ghost" title="Choose a folder of MIDI songs; it is remembered"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Set MIDI library</span></button>
-    <button id="fileBtn" class="ghost" title="Load a single .mid song file"><svg class="ic"><use href="#i-file"/></svg><span class="t">Load one song</span></button>
+    <button id="fileBtn" class="ghost" title="Load one song: a MIDI file (.mid) or sheet music (MusicXML: .musicxml, .mxl)"><svg class="ic"><use href="#i-file"/></svg><span class="t">Load one song</span></button>
     <button id="chartBtn" class="ghost" title="Choose a Clone Hero / YARG / Rock Band song folder (or a folder full of them): notes.mid or notes.chart plus the audio"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Load charts</span></button>
     <input id="chartInput" type="file" webkitdirectory multiple hidden>
     <label class="field" id="chartDiffWrap" hidden><span>Difficulty</span><select id="chartDiff"></select></label>
@@ -276,8 +302,30 @@
     <div class="field"><span>BPM</span><div id="cBpm" class="bpmread">–</div></div>
   </div>
   <input id="libInput" type="file" webkitdirectory multiple hidden>
-  <input id="fileInput" type="file" accept=".mid,.midi,audio/midi" hidden>
+  <input id="fileInput" type="file" accept=".mid,.midi,audio/midi,.musicxml,.mxl,.xml" hidden>
   <label class="field scroll"><span>Scroll speed</span><input id="speed" type="range" min="200" max="900" value="450"></label>
+</div>
+<div id="rModal" class="modal" hidden>
+  <div class="mcard rcard" role="dialog" aria-labelledby="rTitle">
+    <div class="rtop"><h2 id="rTitle">Run report</h2><b id="rAcc">–</b></div>
+    <p id="rSub"></p>
+    <div class="rsec" id="rTiming"></div>
+    <div class="rsec" id="rLanes"></div>
+    <div class="rsec" id="rDyn" hidden></div>
+    <div class="rsec" id="rBarsSec" hidden></div>
+    <div class="rbtns"><button id="rLoop" hidden></button><button id="rAgain" class="primary"><span class="t">Play again</span></button><button id="rClose" class="ghost">Close</button></div>
+  </div>
+</div>
+<div id="gModal" class="modal" hidden>
+  <div class="mcard rcard" role="dialog" aria-labelledby="gTitle">
+    <div class="rtop"><h2 id="gTitle">Your progress</h2><label class="field"><span>Daily goal</span><select id="gGoal"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label></div>
+    <div class="ghead" id="gHead"></div>
+    <div class="gbar"><i id="gBar"></i></div>
+    <div class="rsec" id="gDays"></div>
+    <div class="rsec"><h3>Song or drill</h3><select id="gItem"></select><div id="gChart"></div></div>
+    <div class="rsec" id="gRecent"></div>
+    <div class="rbtns"><button id="gReset" class="ghost small"><span class="t">Reset history</span></button><button id="gClose" class="primary">Close</button></div>
+  </div>
 </div>
 <div id="pModal" class="modal" hidden>
   <div class="mcard" role="dialog" aria-labelledby="pmTitle">
@@ -349,10 +397,23 @@
         <p class="hint loopRow">Plays the bars over and over with no break. Start slow (set Tempo to 60–70%): each pass you play at 90% or better speeds it up, until 100%.</p>
         <p class="hint" id="instInfo"></p>
       </div>
+      <div id="toolsSec">
+      <h2>Practice tools</h2>
+      <div class="rows">
+        <div class="row" id="waitRow"><label class="sw"><input id="waitOn" type="checkbox"> Wait mode: the notes stop until you hit them</label></div>
+        <div class="row"><label class="sw"><input id="dynOn" type="checkbox" checked> Score accents and ghost notes</label></div>
+        <div class="row dynRow"><label>Accent = velocity at least <input id="dynAcc" type="number" min="40" max="127" value="100"></label></div>
+        <div class="row dynRow"><label>Ghost = velocity at most <input id="dynGhost" type="number" min="1" max="110" value="60"></label></div>
+        <div class="row"><label class="sw"><input id="hhScore" type="checkbox" checked> Score open and closed hi-hat</label></div>
+        <div class="row"><label class="sw"><input id="reportOn" type="checkbox" checked> Show a report after each run</label></div>
+      </div>
+      <p class="hint" id="waitHint">Wait mode is for learning a new part: there's no backing or click, and the highway holds at each note until you hit the right drum. On the keyboard, hold Shift to play an accent, and press Q for an open hi-hat.</p>
+      </div>
       <h2>Display &amp; timing</h2>
       <div class="rows">
         <div class="row"><label class="sw"><input id="autoHide" type="checkbox" checked> Hide this panel while playing</label></div>
         <div class="row"><label class="sw"><input id="showNotation" type="checkbox" checked> Show drum notation</label></div>
+        <div class="row"><label class="sw"><input id="pageView" type="checkbox"> Full-page sheet music instead of the highway (key N)</label></div>
         <div class="row"><label class="sw"><input id="clickOn" type="checkbox" checked> Metronome click</label></div>
         <div class="row"><label>Hit window <select id="hitWin">
           <option value="tight">Tight ±80 ms</option><option value="normal" selected>Normal ±120 ms</option><option value="relaxed">Relaxed ±160 ms</option>
@@ -401,6 +462,8 @@
       <p class="hint"><a class="lnk" href="https://github.com/tatayotter/drum-highway/releases/download/companion/DrumHighwayCompanion.exe">Download the Companion for Windows</a></p>
       <h2>Pad mapping</h2>
       <p class="hint">MIDI note numbers your kit sends for each lane, comma separated. Click <b>Learn</b> then hit the pad to add its note. Saved in this browser.</p>
+      <div class="rows"><div class="row"><label class="sw"><input id="pedalOn" type="checkbox"> Hi-hat pedal lane (play the foot "chick" notes)</label></div></div>
+      <p class="hint">Adds a lane for the hi-hat pedal (note 44, key V) and shows the foot hi-hat in songs. Changing this reloads the app.</p>
       <table id="mapTable"></table>
       <div class="btns"><button id="resetMap" class="ghost small">Reset to defaults</button></div>
       <h2>MIDI monitor</h2>
@@ -550,8 +613,12 @@ function midiToSong(mid, name, opts = {}) {
     { id: 'tom2',  name: 'Tom 2',     color: '#2ec4d6', key: 'j', notes: [45, 47] },
     { id: 'tom3',  name: 'Floor tom', color: '#4d9dff', key: 'k', notes: [43, 41] },
     { id: 'ride',  name: 'Ride',      color: '#a78bfa', key: 'l', notes: [51, 53, 59] },
+    { id: 'hhp',   name: 'HH pedal',  color: '#c7b27a', key: 'v', notes: [44] },
     { id: 'kick',  name: 'Kick',      color: '#d7dce5', key: ' ', notes: [36, 35] },
   ];
+  // The hi-hat pedal lane is optional (Kit setup). Turning it on or off reloads the app.
+  const PEDAL_KEY = 'drumHighway.pedal.v1';
+  let PEDAL_ON = false; try { PEDAL_ON = localStorage.getItem(PEDAL_KEY) === '1'; } catch (e) {}
   // How drum notes in a song file land on lanes (General MIDI). Pedal hi-hat (44) and
   // hand percussion (tambourine, cowbell…) are not shown on the highway.
   const SONG_GM_TO_LANE = {
@@ -562,16 +629,17 @@ function midiToSong(mid, name, opts = {}) {
     51: 'ride', 53: 'ride', 59: 'ride',
     48: 'tom1', 50: 'tom1', 45: 'tom2', 47: 'tom2', 41: 'tom3', 43: 'tom3',
   };
-  const LANE_SOUND = { hh: 42, crash: 49, snare: 38, tom1: 48, tom2: 45, tom3: 41, ride: 51, kick: 36 };
+  if (PEDAL_ON) SONG_GM_TO_LANE[44] = 'hhp';
+  const LANE_SOUND = { hh: 42, crash: 49, snare: 38, tom1: 48, tom2: 45, tom3: 41, ride: 51, hhp: 44, kick: 36 };
 
   const STORE_KEY = 'drumHighway.mapping.v1';
-  let lanes = structuredClone(DEFAULT_LANES);
+  let lanes = structuredClone(DEFAULT_LANES).filter(l => PEDAL_ON || l.id !== 'hhp');
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (saved) lanes.forEach(l => { if (Array.isArray(saved[l.id])) l.notes = saved[l.id]; });
   } catch (e) {}
   const saveMapping = () => {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(Object.fromEntries(lanes.map(l => [l.id, l.notes])))); } catch (e) {}
+    try { const old = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; localStorage.setItem(STORE_KEY, JSON.stringify({ ...old, ...Object.fromEntries(lanes.map(l => [l.id, l.notes])) })); } catch (e) {}
   };
   const laneIndexForNote = (n) => lanes.findIndex(l => l.notes.includes(n));
   const laneIdx = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
@@ -1069,7 +1137,7 @@ function midiToSong(mid, name, opts = {}) {
   let effects = [];
   let laneFlash = new Array(lanes.length).fill(-10);
   let schedIdx = { backing: 0, drums: 0, beats: 0 };
-  const resetStats = () => { stats = { score: 0, combo: 0, best: 0, perfect: 0, good: 0, miss: 0, extra: 0, dts: [] }; renderStats(); };
+  const resetStats = () => { stats = { score: 0, combo: 0, best: 0, perfect: 0, good: 0, miss: 0, extra: 0, dts: [], dynOk: 0, dynTotal: 0, hhWrong: 0 }; renderStats(); };
 
   // ---------- Audio ----------
   let ac = null, master = null, backBus = null, drumBus = null, clickBus = null, noiseBuf = null;
@@ -1243,16 +1311,17 @@ function midiToSong(mid, name, opts = {}) {
   let padVol = {}; try { padVol = JSON.parse(localStorage.getItem(PADVOL_KEY) || '{}') || {}; } catch (e) {}
   const savePadVol = () => { try { localStorage.setItem(PADVOL_KEY, JSON.stringify(padVol)); } catch (e) {} };
   function scheduleDrum(t, note, vel, laneId) {
-    const lane = laneId || SONG_GM_TO_LANE[note] || (note === 44 ? 'hh' : null);
+    const lane = laneId || SONG_GM_TO_LANE[note] || (note === 44 ? 'hhp' : null);
     const isOpen = lane === 'hh' && (note === 46 || note === 26);
     const v = (vel / 127) * (padVol[isOpen ? 'hhOpen' : lane] ?? 1);
     if (v <= 0.001) return;
-    const slot = isOpen && kit.buffers.hhOpen ? 'hhOpen' : lane;
+    const slot = isOpen && kit.buffers.hhOpen ? 'hhOpen' : lane === 'hhp' ? (kit.buffers.hhp ? 'hhp' : null) : lane;
     if (slot && kit.buffers[slot]) { playSample(t, slot, v); return; }
     switch (lane) {
       case 'kick': tone(t, 140, 45, 0.35, 0.9 * v); break;
       case 'snare': tone(t, 220, 160, 0.12, 0.35 * v); noise(t, 0.18, 1200, 9000, 0.5 * v); break;
       case 'hh': noise(t, note === 46 ? 0.35 : 0.05, 7000, 16000, 0.25 * v); break;
+      case 'hhp': noise(t, 0.035, 5000, 11000, 0.2 * v); break;
       case 'crash': noise(t, 1.2, 4000, 14000, 0.3 * v); break;
       case 'ride': noise(t, 0.4, 6000, 14000, 0.15 * v); tone(t, 3200, 3000, 0.3, 0.03 * v); break;
       case 'tom1': tone(t, 260, 170, 0.3, 0.6 * v); break;
@@ -1431,7 +1500,7 @@ function midiToSong(mid, name, opts = {}) {
         play.pass++;
         const acc = P + G + M ? (P + G * 0.5) / (P + G + M) : 0, pct = Math.round(acc * 100);
         let tempo = +$('tempoPct').value || 100, msg = `Pass ${play.pass}: ${pct}%`;
-        const step = +$('loopStep').value;
+        const step = play.wait ? 0 : +$('loopStep').value;
         if (step && acc >= 0.9 && tempo < 100) { tempo = Math.min(100, tempo + step); $('tempoPct').value = String(tempo); msg += `, clean! Next pass at ${tempo}%`; }
         else if (step && acc >= 0.9) msg += ', full speed 🏁';
         else if (step) msg += `, staying at ${tempo}%`;
@@ -1448,7 +1517,7 @@ function midiToSong(mid, name, opts = {}) {
       play.pass++;
       const acc = P + G + M ? (P + G * 0.5) / (P + G + M) : 0, pct = Math.round(acc * 100);
       let msg = `Pass ${play.pass}: ${pct}%`;
-      if ($('trainOn').checked) {
+      if ($('trainOn').checked && !play.wait) {
         const bpm = drillBpm(), target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
         if (acc >= 0.9 && bpm < target) { const nb = Math.min(target, bpm + step); $('bpm').value = nb; saveDrill(); msg += `, clean! Speeding up to ${nb} BPM`; }
         else if (acc >= 0.9) msg += `, target ${target} BPM reached 🏁`;
@@ -1567,6 +1636,11 @@ function midiToSong(mid, name, opts = {}) {
     runId++;
     ensureAudio();
     play = buildPlay();
+    play.startBar = Math.max(1, +$('startBar').value || 1);
+    play.wallStart = performance.now();
+    play.hasOpen = play.notes.some(n => n.open) || !!play.loop;
+    if ($('waitOn').checked && mode !== 'course') { play.wait = true; play.audio = null; }
+    $('rModal').hidden = true;
     resetStats();
     effects = [];
     schedIdx = { backing: 0, drums: 0, beats: 0 };
@@ -1576,6 +1650,7 @@ function midiToSong(mid, name, opts = {}) {
     setRunBtn(true);
   }
   function stop() {
+    if (running) recordRun();
     running = false; setRunBtn(false);
     stopBackingAudio();
     if (master) { // cut scheduled audio quickly
@@ -1587,7 +1662,7 @@ function midiToSong(mid, name, opts = {}) {
       updateVolumes();
     }
   }
-  startBtn.onclick = () => { runId++; if (running) { stop(); trainerMsg = ''; } else start(); };
+  startBtn.onclick = () => { runId++; if (running) { stop(); trainerMsg = ''; showReport(); } else start(); };
 
   function refreshSourceUI() {
     const src = currentSource();
@@ -1595,6 +1670,7 @@ function midiToSong(mid, name, opts = {}) {
     $('songCtl').hidden = mode !== 'songs'; $('drillCtl').hidden = mode !== 'drills'; $('courseCtl').hidden = mode !== 'course';
     $('songSide').hidden = mode !== 'songs'; $('drillSide').hidden = mode !== 'drills'; $('courseSide').hidden = mode !== 'course';
     $('songInfo').hidden = mode === 'course';
+    $('waitRow').hidden = mode === 'course';
     if (mode === 'course') renderCourse();
     document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
     $('drumChRow').hidden = src.kind !== 'midi' || !!src.song.fixedDrums;
@@ -1662,11 +1738,11 @@ function midiToSong(mid, name, opts = {}) {
     const judged = stats.perfect + stats.good + stats.miss;
     const acc = judged ? (stats.perfect + stats.good * 0.5) / judged : 0;
     if (mode === 'course') { trainerMsg = courseResult(acc); return; }
-    if (mode !== 'drills' || !$('trainOn').checked) { trainerMsg = ''; return; }
+    if (mode !== 'drills' || !$('trainOn').checked || play.wait) { trainerMsg = ''; showReport(); return; }
     const bpm = +$('bpm').value, target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
     const pct = Math.round(acc * 100);
     if (acc >= 0.9) {
-      if (bpm >= target) { trainerMsg = `🏁 ${pct}% at ${bpm} BPM. Target reached!`; return; }
+      if (bpm >= target) { trainerMsg = `🏁 ${pct}% at ${bpm} BPM. Target reached!`; showReport(); return; }
       const nb = Math.min(target, bpm + step);
       $('bpm').value = nb; saveDrill();
       trainerMsg = `✓ Clean round (${pct}%). Next: ${nb} BPM`;
@@ -1674,6 +1750,190 @@ function midiToSong(mid, name, opts = {}) {
     const id = ++runId;
     setTimeout(() => { if (id === runId && !running && mode === 'drills') start(); }, 2200);
   }
+
+  // ---------- Practice tools: settings ----------
+  const TOOLS_KEY = 'drumHighway.tools.v1';
+  try { const v = JSON.parse(localStorage.getItem(TOOLS_KEY) || 'null'); if (v) { ['waitOn', 'dynOn', 'reportOn', 'hhScore'].forEach(k => { if (k in v) $(k).checked = !!v[k]; }); if (v.dynAcc) $('dynAcc').value = v.dynAcc; if (v.dynGhost) $('dynGhost').value = v.dynGhost; } } catch (e) {}
+  function saveTools() {
+    try { localStorage.setItem(TOOLS_KEY, JSON.stringify({ hhScore: $('hhScore').checked, waitOn: $('waitOn').checked, dynOn: $('dynOn').checked, reportOn: $('reportOn').checked, dynAcc: +$('dynAcc').value, dynGhost: +$('dynGhost').value })); } catch (e) {}
+    document.querySelectorAll('.dynRow').forEach(r => r.hidden = !$('dynOn').checked);
+  }
+  ['waitOn', 'dynOn', 'reportOn', 'hhScore', 'dynAcc', 'dynGhost'].forEach(id => $(id).addEventListener('change', () => { if (id === 'waitOn' && running) stop(); saveTools(); }));
+  saveTools();
+
+  // ---------- After-run report ----------
+  function showReport() {
+    if (!$('reportOn').checked || !play || mode === 'course') return;
+    const judgedNotes = play.notes.filter(n => n.state !== 'pending');
+    if (judgedNotes.length < 8) return;
+    const credit = (n) => n.state === 'perfect' ? 1 : n.state === 'good' ? 0.5 : 0;
+    const accOf = (ns) => ns.length ? ns.reduce((a, n) => a + credit(n), 0) / ns.length : 0;
+    const hits = judgedNotes.filter(n => n.state !== 'miss');
+    const acc = accOf(judgedNotes);
+    $('rAcc').textContent = Math.round(acc * 100) + '%';
+    const what = play.drill ? (mode === 'drills' ? currentDrill().name : 'Lesson') : (currentSource().song?.name || 'Song');
+    $('rSub').textContent = (play.newBest ? '🏆 New personal best! ' : '') + `${what}${play.wait ? ' · wait mode' : ''}: ${hits.length} of ${judgedNotes.length} notes hit, best combo ${stats.best}${stats.extra ? `, ${stats.extra} extra hit${stats.extra > 1 ? 's' : ''}` : ''}.`;
+    // --- timing ---
+    const timed = hits.filter(n => !n.held).map(n => n.dt * 1000);
+    let th = '<h3>Timing</h3>';
+    if (play.wait) th += '<div>Wait mode doesn’t score timing. Turn it off when the part feels easy, to play it in time.</div>';
+    else if (timed.length >= 4) {
+      const mean = timed.reduce((a, b) => a + b, 0) / timed.length;
+      const sd = Math.sqrt(timed.reduce((a, b) => a + (b - mean) ** 2, 0) / timed.length);
+      const verdict = mean < -12 ? `You’re rushing: on average ${Math.round(-mean)} ms early.` : mean > 12 ? `You’re dragging: on average ${Math.round(mean)} ms late.` : `Right on the beat (average ${mean > 0 ? '+' : ''}${Math.round(mean)} ms).`;
+      const steady = sd < 15 ? 'very steady' : sd < 30 ? 'fairly steady' : 'uneven: some hits are far from the beat';
+      th += `<div class="big">${verdict}</div><div>Spread ±${Math.round(sd)} ms, ${steady}.</div>`;
+      // histogram, 10 ms bins across the hit window
+      const lim = Math.round(WIN_GOOD * 1000), bins = Math.ceil(lim / 10) * 2, cnt = new Array(bins).fill(0);
+      for (const d of timed) cnt[Math.max(0, Math.min(bins - 1, Math.floor((d + lim) / 10)))]++;
+      const mx = Math.max(...cnt), Wd = 560, Hh = 70, bw = Wd / bins;
+      let svg = `<svg viewBox="0 0 ${Wd} ${Hh + 18}" role="img" aria-label="Timing spread">`;
+      cnt.forEach((c, i) => { const h = mx ? c / mx * Hh : 0, mid = (i + 0.5) * 10 - lim, col = Math.abs(mid) <= WIN_PERFECT * 1000 ? '#3ddc97' : '#f2c14e'; if (c) svg += `<rect x="${(i * bw + 1).toFixed(1)}" y="${(Hh - h).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${col}"/>`; });
+      svg += `<line x1="${Wd / 2}" y1="0" x2="${Wd / 2}" y2="${Hh}" stroke="rgba(255,255,255,.35)" stroke-dasharray="3 3"/>`;
+      svg += `<text x="2" y="${Hh + 14}" fill="#8c93a3" font-size="11">← early</text><text x="${Wd / 2}" y="${Hh + 14}" fill="#8c93a3" font-size="11" text-anchor="middle">on the beat</text><text x="${Wd - 2}" y="${Hh + 14}" fill="#8c93a3" font-size="11" text-anchor="end">late →</text></svg>`;
+      th += svg;
+    } else th += '<div>Not enough hits to judge your timing yet.</div>';
+    $('rTiming').innerHTML = th;
+    // --- per drum ---
+    const rows = lanes.map((l, i) => { const ns = judgedNotes.filter(n => n.lane === i), ts = ns.filter(n => n.state !== 'miss' && !n.held).map(n => n.dt * 1000); return { l, n: ns.length, acc: accOf(ns), mean: ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length : null }; }).filter(r => r.n);
+    const weak = rows.filter(r => r.n >= 4).sort((a, b) => a.acc - b.acc)[0];
+    let lh = '<h3>By drum</h3>' + (weak && weak.acc < 0.9 && rows.length > 1 ? `<div class="big">Work on: ${weak.l.name} (${Math.round(weak.acc * 100)}%)</div>` : '');
+    for (const r of rows) lh += `<div class="rlane${r === weak && weak.acc < 0.9 && rows.length > 1 ? ' weak' : ''}"><span>${r.l.name}</span><i><s style="width:${Math.round(r.acc * 100)}%;background:${r.l.color}"></s></i><em>${Math.round(r.acc * 100)}%</em><em>${r.mean === null || play.wait ? '' : (r.mean > 0 ? '+' : '') + Math.round(r.mean) + ' ms'}</em></div>`;
+    $('rLanes').innerHTML = lh;
+    // --- dynamics ---
+    const dn = judgedNotes.filter(n => n.dyn);
+    $('rDyn').hidden = !dn.length && !stats.hhWrong;
+    if (!dn.length && stats.hhWrong) $('rDyn').innerHTML = `<h3>Hi-hat</h3><div class="big">${stats.hhWrong} hi-hat note${stats.hhWrong > 1 ? 's' : ''} played open/closed the wrong way.</div>`;
+    if (dn.length) {
+      const ok = dn.filter(n => n.dyn === 'ok').length, soft = dn.filter(n => n.dyn === 'soft').length, loud = dn.filter(n => n.dyn === 'loud').length;
+      const accs = dn.filter(n => n.acc && n.vel), ghosts = dn.filter(n => !n.acc && n.ghost && n.vel);
+      const avg = (a) => Math.round(a.reduce((x, n) => x + n.vel, 0) / a.length);
+      $('rDyn').innerHTML = `<h3>Accents &amp; ghost notes</h3><div class="big">${ok} of ${dn.length} at the right strength (${Math.round(ok / dn.length * 100)}%)</div>` +
+        `<div>${soft ? `${soft} accent${soft > 1 ? 's' : ''} too soft. ` : ''}${loud ? `${loud} ghost note${loud > 1 ? 's' : ''} too loud. ` : ''}${accs.length ? `Your accents average velocity ${avg(accs)}. ` : ''}${ghosts.length ? `Your ghost notes average ${avg(ghosts)}.` : ''}</div>` + (stats.hhWrong ? `<div>${stats.hhWrong} hi-hat note${stats.hhWrong > 1 ? 's' : ''} played open/closed the wrong way.</div>` : '');
+    }
+    // --- weakest bars (songs) ---
+    const downs = play.beats.filter(b => b.down && !b.countIn);
+    const barOf = (t) => { let k = -1; for (let i = 0; i < downs.length && downs[i].t <= t + 1e-4; i++) k = i; return k < 0 ? null : downs[k].barNo ?? (play.drill ? k + 1 : play.startBar + k); };
+    const byBar = new Map();
+    for (const n of judgedNotes) { const b = barOf(n.t); if (b === null) continue; if (!byBar.has(b)) byBar.set(b, []); byBar.get(b).push(n); }
+    const worst = [...byBar].map(([b, ns]) => ({ b, acc: accOf(ns) })).filter(x => x.acc < 0.85).sort((a, b) => a.acc - b.acc).slice(0, 4);
+    $('rBarsSec').hidden = !worst.length || !!play.drill;
+    $('rLoop').hidden = true;
+    if (worst.length && !play.drill) {
+      $('rBarsSec').innerHTML = '<h3>Hardest bars</h3><div class="rbars">' + worst.map(x => `<span>Bar ${x.b} · ${Math.round(x.acc * 100)}%</span>`).join('') + '</div>';
+      const s = currentSource().song, A = worst[0].b, B = Math.min(A + 1, s ? s.barStarts.length : A + 1);
+      $('rLoop').hidden = false; btnText('rLoop', `Loop bars ${A}–${B} at 70%`);
+      $('rLoop').onclick = () => {
+        $('rModal').hidden = true;
+        $('loopOn').checked = true; $('startBar').value = A; $('loopTo').value = B; $('tempoPct').value = '70'; if (+$('loopStep').value === 0) $('loopStep').value = '5';
+        refreshLoopUI(); showTab('practice'); play = buildPlay(); start();
+      };
+    }
+    $('rModal').hidden = false;
+  }
+  $('rClose').onclick = () => { $('rModal').hidden = true; };
+  $('rAgain').onclick = () => { $('rModal').hidden = true; start(); };
+  $('rModal').addEventListener('click', (e) => { if (e.target === $('rModal')) $('rModal').hidden = true; });
+  window.addEventListener('keydown', (e) => { if (!$('rModal').hidden && e.key === 'Escape') $('rModal').hidden = true; }, true);
+
+  // ---------- Progress tracking: every run is logged in this browser ----------
+  const HIST_KEY = 'drumHighway.history.v1';
+  let hist = { runs: [], goal: 15 };
+  try { const v = JSON.parse(localStorage.getItem(HIST_KEY) || 'null'); if (v && Array.isArray(v.runs)) hist = { goal: 15, ...v }; } catch (e) {}
+  const saveHist = () => { try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch (e) {} };
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dayShift = (k, n) => { const [y, m, d] = k.split('-').map(Number); return dayKey(new Date(y, m - 1, d + n)); };
+  function runItem() {
+    if (mode === 'drills') { const d = currentDrill(); return { item: `${d.cat} › ${d.name}`, bpm: drillBpm() }; }
+    if (mode === 'course') { const L = curLesson(); return { item: 'Course › ' + (L ? L.name || L.title || 'lesson' : 'lesson'), bpm: courseBpm() }; }
+    const s = currentSource().song; return { item: s ? s.name : 'Song', bpm: s ? Math.round(s.firstBpm * (+$('tempoPct').value || 100) / 100) : 0, tempo: +$('tempoPct').value || 100 };
+  }
+  function recordRun() {
+    if (!play || play.recorded || !play.wallStart) return;
+    play.recorded = true;
+    const secs = Math.round((performance.now() - play.wallStart) / 1000);
+    if (secs < 5) return;
+    const judged = play.notes.filter(n => n.state !== 'pending');
+    const credit = (n) => n.state === 'perfect' ? 1 : n.state === 'good' ? 0.5 : 0;
+    const acc = judged.length >= 8 ? Math.round(judged.reduce((a, n) => a + credit(n), 0) / judged.length * 100) : null;
+    const it = runItem();
+    const prev = hist.runs.filter(r => r.item === it.item && r.acc !== null && !r.wait);
+    play.newBest = acc !== null && !play.wait && prev.length > 0 && acc > Math.max(...prev.map(r => r.acc));
+    hist.runs.push({ d: dayKey(), ts: Date.now(), mode, item: it.item, acc, bpm: it.bpm, tempo: it.tempo, secs, wait: !!play.wait, notes: judged.length });
+    if (hist.runs.length > 3000) hist.runs = hist.runs.slice(-3000);
+    saveHist(); renderProgBtn();
+  }
+  function minutesByDay() { const m = new Map(); for (const r of hist.runs) m.set(r.d, (m.get(r.d) || 0) + r.secs / 60); return m; }
+  function streaks() {
+    const days = new Set(hist.runs.map(r => r.d)), today = dayKey();
+    let cur = 0, k = days.has(today) ? today : dayShift(today, -1);
+    while (days.has(k)) { cur++; k = dayShift(k, -1); }
+    let best = 0, run = 0, prev = null;
+    for (const d of [...days].sort()) { run = prev && dayShift(prev, 1) === d ? run + 1 : 1; best = Math.max(best, run); prev = d; }
+    return { cur, best, today: days.has(today) };
+  }
+  function renderProgBtn() {
+    const st = streaks(), min = Math.round(minutesByDay().get(dayKey()) || 0);
+    btnText('progBtn', `${st.cur ? '🔥 ' + st.cur + ' · ' : ''}${min}/${hist.goal} min`);
+    $('progBtn').classList.toggle('done', min >= hist.goal);
+    $('progBtn').title = `Practice streak: ${st.cur} day${st.cur === 1 ? '' : 's'}. Today: ${min} of ${hist.goal} minutes. Click for your progress.`;
+  }
+  const fmtMin = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${Math.round(m % 60)} min` : `${Math.round(m)} min`;
+  function renderProgress() {
+    const st = streaks(), byDay = minutesByDay(), today = dayKey(), tmin = byDay.get(today) || 0;
+    const total = hist.runs.reduce((a, r) => a + r.secs, 0) / 60;
+    $('gGoal').value = String(hist.goal);
+    $('gHead').innerHTML = `<div><small>Streak</small><b>${st.cur} day${st.cur === 1 ? '' : 's'}</b><em>best ${st.best}</em></div>` +
+      `<div><small>Today</small><b>${Math.round(tmin)} / ${hist.goal} min</b><em>${tmin >= hist.goal ? 'goal reached ✓' : `${Math.ceil(hist.goal - tmin)} min to go`}</em></div>` +
+      `<div><small>All time</small><b>${fmtMin(total)}</b><em>${hist.runs.length} runs</em></div>`;
+    $('gBar').style.width = Math.min(100, tmin / hist.goal * 100) + '%';
+    // last 14 days
+    const days = Array.from({ length: 14 }, (_, i) => dayShift(today, i - 13)), vals = days.map(d => byDay.get(d) || 0);
+    const W = 560, H = 120, mx = Math.max(hist.goal * 1.25, ...vals), bw = W / 14;
+    let svg = `<svg viewBox="0 0 ${W} ${H + 18}" role="img" aria-label="Minutes practised per day">`;
+    vals.forEach((v, i) => { const h = v / mx * H; svg += `<rect x="${(i * bw + 4).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${(bw - 8).toFixed(1)}" height="${Math.max(h, v ? 2 : 0).toFixed(1)}" rx="3" fill="${v >= hist.goal ? '#3ddc97' : '#7c8cff'}"><title>${days[i]}: ${Math.round(v)} min</title></rect>`;
+      if (i % 2 === 1 || i === 13) svg += `<text x="${(i * bw + bw / 2).toFixed(1)}" y="${H + 14}" fill="#8c93a3" font-size="10" text-anchor="middle">${i === 13 ? 'today' : days[i].slice(8).replace(/^0/, '')}</text>`; });
+    const gy = H - hist.goal / mx * H;
+    svg += `<line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="rgba(255,255,255,.35)" stroke-dasharray="4 4"/><text x="${W - 2}" y="${gy - 4}" fill="#8c93a3" font-size="10" text-anchor="end">goal ${hist.goal} min</text></svg>`;
+    $('gDays').innerHTML = '<h3>Minutes per day</h3>' + svg;
+    // per item
+    const items = []; for (let i = hist.runs.length - 1; i >= 0; i--) { const it = hist.runs[i].item; if (!items.includes(it)) items.push(it); }
+    const sel = $('gItem'), keep = sel.value; sel.innerHTML = '';
+    items.forEach(it => sel.add(new Option(it, it)));
+    if (items.includes(keep)) sel.value = keep;
+    renderItemChart();
+    // recent
+    $('gRecent').innerHTML = '<h3>Recent runs</h3>' + (hist.runs.length ? hist.runs.slice(-8).reverse().map(r => `<div class="grun"><span>${r.d.slice(5)}</span><span>${r.item}</span><em>${r.acc === null ? '–' : r.acc + '%'}${r.wait ? ' (wait)' : ''}</em><em>${r.bpm ? r.bpm + ' BPM' : ''}</em></div>`).join('') : '<div>No runs yet. Play a song or drill and it shows up here.</div>');
+  }
+  function renderItemChart() {
+    const it = $('gItem').value, runs = hist.runs.filter(r => r.item === it && r.acc !== null && !r.wait).slice(-30);
+    const all = hist.runs.filter(r => r.item === it);
+    if (!it) { $('gChart').innerHTML = ''; return; }
+    const best = runs.length ? Math.max(...runs.map(r => r.acc)) : null, bestBpm = Math.max(0, ...runs.filter(r => r.acc >= 90).map(r => r.bpm || 0));
+    let h = `<div>${all.length} run${all.length === 1 ? '' : 's'}, ${fmtMin(all.reduce((a, r) => a + r.secs, 0) / 60)}${best !== null ? ` · best ${best}%` : ''}${bestBpm ? ` · fastest clean run (90%+) ${bestBpm} BPM` : ''}</div>`;
+    if (runs.length >= 2) {
+      const W = 560, H = 110, n = runs.length, x = (i) => 10 + i / (n - 1) * (W - 20), y = (a) => H - a / 100 * H + 4;
+      let svg = `<svg viewBox="0 0 ${W} ${H + 10}" role="img" aria-label="Accuracy over time">`;
+      for (const g of [50, 75, 100]) svg += `<line x1="0" x2="${W}" y1="${y(g)}" y2="${y(g)}" stroke="rgba(255,255,255,.08)"/><text x="0" y="${y(g) - 3}" fill="#5b6271" font-size="10">${g}%</text>`;
+      svg += `<polyline fill="none" stroke="#7c8cff" stroke-width="2" points="${runs.map((r, i) => `${x(i).toFixed(1)},${y(r.acc).toFixed(1)}`).join(' ')}"/>`;
+      runs.forEach((r, i) => { svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(r.acc).toFixed(1)}" r="3.5" fill="${r.acc >= 90 ? '#3ddc97' : '#7c8cff'}"><title>${r.d}: ${r.acc}%${r.bpm ? ' at ' + r.bpm + ' BPM' : ''}</title></circle>`; });
+      h += svg + '</svg>';
+    } else h += '<div class="hint">Play it a couple more times to see your accuracy trend.</div>';
+    $('gChart').innerHTML = h;
+  }
+  $('gItem').onchange = renderItemChart;
+  $('gGoal').onchange = () => { hist.goal = +$('gGoal').value || 15; saveHist(); renderProgress(); renderProgBtn(); };
+  $('progBtn').onclick = () => { renderProgress(); $('gModal').hidden = false; };
+  $('gClose').onclick = () => { $('gModal').hidden = true; };
+  $('gModal').addEventListener('click', (e) => { if (e.target === $('gModal')) $('gModal').hidden = true; });
+  $('gReset').onclick = () => {
+    const b = $('gReset');
+    if (!b.dataset.armed) { b.dataset.armed = '1'; btnText('gReset', 'Click again to erase all history'); setTimeout(() => { b.dataset.armed = ''; btnText('gReset', 'Reset history'); }, 4000); return; }
+    hist = { runs: [], goal: hist.goal }; saveHist(); b.dataset.armed = ''; btnText('gReset', 'Reset history'); renderProgress(); renderProgBtn();
+  };
+  window.addEventListener('keydown', (e) => { if (!$('gModal').hidden && e.key === 'Escape') $('gModal').hidden = true; }, true);
+  renderProgBtn();
+  window.__hist = { get hist() { return hist; }, streaks };
 
   patternSel.onchange = async () => {
     const key = patternSel.value;
@@ -1684,7 +1944,7 @@ function midiToSong(mid, name, opts = {}) {
     if (libFiles[key] && !midiSongs[key]) {
       if (running) stop();
       $('songInfo').textContent = 'Loading…';
-      try { const f = libFiles[key]; const file = f.getFile ? await f.getFile() : f; loadMidiBuffer(await file.arrayBuffer(), file.name, key); }
+      try { const f = libFiles[key]; const file = f.getFile ? await f.getFile() : f; loadSongFile(await file.arrayBuffer(), file.name, key); }
       catch (e) { $('songInfo').textContent = 'Could not open that song: ' + e.message + '. Try “Set MIDI library” again.'; }
       return;
     }
@@ -1699,7 +1959,7 @@ function midiToSong(mid, name, opts = {}) {
   $('fileBtn').onclick = () => $('fileInput').click();
   $('fileInput').onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = '';
-    if (file) loadMidiBuffer(await file.arrayBuffer(), file.name);
+    if (file) loadSongFile(await file.arrayBuffer(), file.name);
   };
   // ---------- Backing audio (a recording synced to the MIDI) ----------
   // offset (ms): audio position = MIDI time + offset. Stored per song in IndexedDB.
@@ -1885,26 +2145,26 @@ function midiToSong(mid, name, opts = {}) {
   const atOrAbove = (pc, lo) => lo + (((pc - lo) % 12) + 12) % 12; // lowest note >= lo with this pitch class
   // Drum grids: one string per voice, spread evenly over the bar (16 chars = 16ths, 12 chars = triplets).
   // x = hit, X = accent, g = ghost note, - = rest.
-  const DKEY = { h: 42, o: 46, r: 51, b: 53, c: 49, s: 38, z: 37, k: 36, 1: 48, 2: 45, 3: 41 };
+  const DKEY = { p: 44, h: 42, o: 46, r: 51, b: 53, c: 49, s: 38, z: 37, k: 36, 1: 48, 2: 45, 3: 41 };
   const GROOVES = {
     quarter:  { h: 'x---x---x---x---', s: '----x-------x---', k: 'x-------x-------' },
     hats8:    { h: 'X-x-X-x-X-x-X-x-', k: 'x-------x-------' },
     rock8:    { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-------' },
     rock8b:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-x-----' },
-    ride8:    { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-x-----' },
+    ride8:    { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-x-----', p: '----x-------x---' },
     crash4:   { c: 'x---x---x---x---', s: '----x-------x---', k: 'x-x-----x-x-----' },
     disco:    { h: 'x---x---x---x---', o: '--x---x---x---x-', s: '----x-------x---', k: 'x---x---x---x---' },
     discoB:   { h: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x---x---x---x---' },
     ballad:   { h: 'x-x-x-x-x-x-x-x-', z: '----x-------x---', k: 'x-------x-------' },
-    balladC:  { r: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x-------x-x-----' },
+    balladC:  { r: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x-------x-x-----', p: '----x-------x---' },
     garage:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-----x-x-x-----' },
     garageC:  { o: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x-----x-x-x---x-' },
     half:     { h: 'x-x-x-x-x-x-x-x-', s: '--------x-------', k: 'x-----x---x-----' },
-    halfB:    { r: 'x-x-x-x-x-x-x-x-', s: '--------x-------', k: 'x-x---x---x--x--' },
+    halfB:    { r: 'x-x-x-x-x-x-x-x-', s: '--------x-------', k: 'x-x---x---x--x--', p: '----x-------x---' },
     funk:     { h: 'X-x-X-x-X-x-X-x-', s: '---gX--g-g--X--g', k: 'x-x-------x--x--' },
     funkC:    { o: 'x---x---x---x---', h: '--x---x---x---x-', s: '---gX--g-g--X--g', k: 'x-x---x---x--x--' },
     shuffle:  { h: 'x-xx-xx-xx-x', s: '---x-----x--', k: 'x-----x-----' },
-    shuffleR: { r: 'x-xx-xx-xx-x', s: '---x-----x--', k: 'x-----x-x---' },
+    shuffleR: { r: 'x-xx-xx-xx-x', s: '---x-----x--', k: 'x-----x-x---', p: '---x-----x--' },
     tribal:   { 3: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x--x----x--x----' },
     tribalB:  { 3: 'X-x-x-X-x-x-X-x-', 1: '----x-------x---', k: 'x--x--x---x--x--' },
     punk:     { h: 'x-x-x-x-x-x-x-x-', s: '--x---x---x---x-', k: 'x---x---x---x---' },
@@ -1913,7 +2173,7 @@ function midiToSong(mid, name, opts = {}) {
     six16:    { h: 'XxxxXxxxXxxxXxxx', s: '----x-------x---', k: 'x-----x-x-----x-' },
     six16g:   { h: 'XxxxXxxxXxxxXxxx', s: '-g--X--g-g--X---', k: 'x-x---x---x---x-' },
     rockK8:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-x-x-x-x-x-x-x-' },
-    dbl:      { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx' },
+    dbl:      { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx', p: 'x---x---x---x---' },
     dblC:     { c: 'x---x---x---x---', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx' },
   };
   // Fills take over the last `beats` beats of a section's final bar.
@@ -1936,7 +2196,7 @@ function midiToSong(mid, name, opts = {}) {
       const per = str.length / beats;
       for (let j = 0; j < str.length; j++) {
         const c = str[j]; if (c === '-') continue;
-        out.push([b0 * 4 + j * 4 / per, DKEY[k], c === 'X' ? 118 : c === 'g' ? 36 : (k === 'h' || k === 'r' || k === 'o') ? 84 : 100]);
+        out.push([b0 * 4 + j * 4 / per, DKEY[k], c === 'X' ? 118 : c === 'g' ? 36 : (k === 'h' || k === 'r' || k === 'o' || k === 'p') ? 84 : 100]);
       }
     }
     return out;
@@ -2146,6 +2406,188 @@ function midiToSong(mid, name, opts = {}) {
     const ph = patternSel.querySelector('option[value=""]');
     patternSel.insertBefore(origGroup, ph ? ph.nextSibling : patternSel.firstChild);
   }
+
+  // ---------- Sheet music: MusicXML (.musicxml / .xml) and compressed .mxl ----------
+  // Drum parts become the highway; other parts (piano, bass…) become the backing, played with GM sounds.
+  async function unzip(buf) {
+    const v = new DataView(buf); let e = buf.byteLength - 22;
+    while (e >= 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error('not a valid .mxl file');
+    const n = v.getUint16(e + 10, true); let p = v.getUint32(e + 16, true);
+    const out = {};
+    for (let i = 0; i < n; i++) {
+      const method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true), nlen = v.getUint16(p + 28, true), xlen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true), lho = v.getUint32(p + 42, true);
+      const name = new TextDecoder().decode(new Uint8Array(buf, p + 46, nlen));
+      const start = lho + 30 + v.getUint16(lho + 26, true) + v.getUint16(lho + 28, true);
+      out[name] = async () => {
+        const raw = new Uint8Array(buf, start, csize);
+        if (method === 0) return new TextDecoder().decode(raw);
+        const st = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        return new TextDecoder().decode(await new Response(st).arrayBuffer());
+      };
+      p += 46 + nlen + xlen + clen;
+    }
+    return out;
+  }
+  async function musicXmlText(buf, name) {
+    const head = new Uint8Array(buf, 0, 2);
+    if (/\.mxl$/i.test(name) || (head[0] === 0x50 && head[1] === 0x4b)) {
+      const z = await unzip(buf);
+      let path = null;
+      if (z['META-INF/container.xml']) { const m = /full-path="([^"]+)"/.exec(await z['META-INF/container.xml']()); if (m) path = m[1]; }
+      if (!path || !z[path]) path = Object.keys(z).find(k => /\.(xml|musicxml)$/i.test(k) && !k.startsWith('META-INF'));
+      if (!path) throw new Error('no score inside this .mxl file');
+      return z[path]();
+    }
+    return new TextDecoder().decode(buf);
+  }
+  const STEP_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  // Drum notes by staff position, for scores without MIDI drum numbers (standard 5-line drum notation).
+  function drumByPosition(step, oct, head) {
+    const x = /x|cross|circle-x|diamond/i.test(head || ''), k = step + oct;
+    if (x) return { G5: head === 'circle-x' ? 46 : 42, A5: 49, F5: 51, E5: 53, B5: 57, D4: 44, C5: 37 }[k] ?? 42;
+    return { F4: 36, E4: 35, C5: 38, E5: 48, D5: 45, A4: 41, G4: 43, B4: 47 }[k] ?? 38;
+  }
+  function parseMusicXml(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    if (doc.querySelector('parsererror')) throw new Error('this file is not valid MusicXML');
+    if (doc.querySelector('score-timewise')) throw new Error('timewise MusicXML is not supported; export as normal (partwise) MusicXML');
+    const kids = (el, tag) => el ? [...el.children].filter(c => c.tagName === tag) : [];
+    const kid = (el, tag) => kids(el, tag)[0] || null;
+    const txt = (el, tag) => { const c = kid(el, tag); return c ? c.textContent.trim() : null; };
+    const title = doc.querySelector('work > work-title')?.textContent.trim() || doc.querySelector('movement-title')?.textContent.trim() || '';
+    // instruments per part
+    const partInfo = {};
+    for (const sp of doc.querySelectorAll('part-list > score-part')) {
+      const id = sp.getAttribute('id'), inst = {};
+      let chan = null, program = 0;
+      for (const mi of kids(sp, 'midi-instrument')) {
+        const un = txt(mi, 'midi-unpitched'), ch = txt(mi, 'midi-channel'), pr = txt(mi, 'midi-program');
+        if (un) inst[mi.getAttribute('id')] = +un - 1; // MusicXML numbers 1-128
+        if (ch && chan === null) chan = +ch; if (pr) program = +pr - 1;
+      }
+      partInfo[id] = { name: txt(sp, 'part-name') || id, inst, chan, program };
+    }
+    const PPQ = 480, parts = kids(doc.documentElement, 'part');
+    if (!parts.length) throw new Error('no parts found in this score');
+    // Pass 1: per part, per measure: events at local ticks; measure lengths; barline repeat info from the first part.
+    const meas = []; // index -> { len, ts, tempo:[{tick,bpm}], fwd, back, times, ending:[nums] }
+    const partEv = [];
+    let anyDrum = false;
+    parts.forEach((part, pi) => {
+      const info = partInfo[part.getAttribute('id')] || { inst: {}, chan: null, program: 0, name: '' };
+      let divisions = 1, perc = info.chan === 10;
+      const evs = [];
+      kids(part, 'measure').forEach((m, mi) => {
+        const M = meas[mi] = meas[mi] || { len: 0, tempo: [], fwd: false, back: false, times: 2, ending: null };
+        let pos = 0, lastStart = 0, maxPos = 0;
+        const T = (p) => Math.round(p / divisions * PPQ);
+        for (const el of m.children) {
+          const tag = el.tagName;
+          if (tag === 'attributes') {
+            const dv = txt(el, 'divisions'); if (dv) divisions = +dv;
+            const tm = kid(el, 'time'); if (tm && txt(tm, 'beats')) M.ts = [parseInt(txt(tm, 'beats')) || 4, +txt(tm, 'beat-type') || 4];
+            const cl = kid(el, 'clef'); if (cl && txt(cl, 'sign') === 'percussion') perc = true;
+          } else if (tag === 'backup') pos -= +txt(el, 'duration') || 0;
+          else if (tag === 'forward') pos += +txt(el, 'duration') || 0;
+          else if (tag === 'direction' || tag === 'sound') {
+            const snd = tag === 'sound' ? el : kid(el, 'sound');
+            const tp = snd && snd.getAttribute('tempo');
+            const pm = tag === 'direction' && el.querySelector('metronome > per-minute');
+            const bpm = tp ? +tp : pm ? parseFloat(pm.textContent) : null;
+            if (bpm && pi === 0 || bpm && !M.tempo.length) M.tempo.push({ tick: T(pos), bpm });
+          } else if (tag === 'barline' && pi === 0) {
+            const rp = kid(el, 'repeat'); if (rp) { if (rp.getAttribute('direction') === 'forward') M.fwd = true; else { M.back = true; M.times = +(rp.getAttribute('times') || 2); } }
+            const en = kid(el, 'ending'); if (en && en.getAttribute('type') === 'start') M.ending = en.getAttribute('number').split(/[,\s]+/).map(Number);
+          } else if (tag === 'note') {
+            if (kid(el, 'grace') || kid(el, 'cue')) continue;
+            const dur = +txt(el, 'duration') || 0;
+            const start = kid(el, 'chord') ? lastStart : pos;
+            if (!kid(el, 'chord')) { lastStart = pos; pos += dur; }
+            maxPos = Math.max(maxPos, pos);
+            if (kid(el, 'rest')) continue;
+            const tie = kids(el, 'tie').map(t => t.getAttribute('type'));
+            if (tie.includes('stop') && !tie.includes('start')) continue;
+            const un = kid(el, 'unpitched'), pt = kid(el, 'pitch');
+            const art = el.querySelector('notations articulations');
+            const acc = !!(art && (kid(art, 'accent') || kid(art, 'strong-accent')));
+            const headEl = kid(el, 'notehead'), head = headEl ? headEl.textContent.trim() : '';
+            const ghost = headEl && headEl.getAttribute('parentheses') === 'yes';
+            const vel = ghost ? 40 : acc ? 120 : 96;
+            if (un || (perc && pt)) {
+              const iid = kid(el, 'instrument')?.getAttribute('id');
+              let gm = iid != null && info.inst[iid] !== undefined ? info.inst[iid] : null;
+              if (gm === null) gm = un ? drumByPosition(txt(un, 'display-step'), txt(un, 'display-octave'), head) : drumByPosition(txt(pt, 'step'), txt(pt, 'octave'), head);
+              evs.push({ m: mi, tick: T(start), drum: true, note: gm, vel, len: Math.max(30, T(dur)) });
+              anyDrum = true;
+            } else if (pt) {
+              const midi = (+txt(pt, 'octave') + 1) * 12 + STEP_PC[txt(pt, 'step')] + (+txt(pt, 'alter') || 0);
+              let len = T(dur);
+              evs.push({ m: mi, tick: T(start), drum: false, note: midi, vel: 84, len: Math.max(30, len), tieStart: tie.includes('start') });
+            }
+          }
+        }
+        M.len = Math.max(M.len, T(maxPos));
+      });
+      partEv.push({ info, evs });
+    });
+    if (!anyDrum) throw new Error('no drum part found (a percussion staff or a part on MIDI channel 10)');
+    // measure lengths: actual content, else the time signature
+    let ts = [4, 4];
+    meas.forEach(M => { if (M.ts) ts = M.ts; M.tsNow = ts; const full = Math.round(ts[0] * 4 / ts[1] * PPQ); if (!M.len) M.len = full; });
+    // Play order with simple repeats and 1st/2nd endings.
+    const order = []; let i = 0, pass = 1, repStart = 0, guard = 0;
+    while (i < meas.length && guard++ < 5000) {
+      const M = meas[i];
+      if (M.fwd && repStart !== i) { repStart = i; pass = 1; }
+      if (M.ending && !M.ending.includes(pass)) { // skip an ending that isn't for this pass
+        let j = i; while (j < meas.length - 1 && !meas[j].back && (j === i || !meas[j].ending)) j++;
+        i = meas[j].back ? j + 1 : j; continue;
+      }
+      order.push(i);
+      if (M.back && pass < M.times) { pass++; i = repStart; continue; }
+      if (M.back) { pass = 1; repStart = i + 1; }
+      i++;
+    }
+    const startOf = []; let acc0 = 0; const t0ev = []; let lastTs = null;
+    order.forEach((mi, k) => {
+      startOf.push(acc0);
+      const M = meas[mi];
+      if (!lastTs || lastTs[0] !== M.tsNow[0] || lastTs[1] !== M.tsNow[1]) { t0ev.push({ tick: acc0, type: 'timesig', num: M.tsNow[0], den: M.tsNow[1] }); lastTs = M.tsNow; }
+      for (const tp of M.tempo) t0ev.push({ tick: acc0 + tp.tick, type: 'tempo', uspq: Math.round(60e6 / tp.bpm) });
+      acc0 += M.len;
+    });
+    if (!t0ev.some(e => e.type === 'tempo')) t0ev.unshift({ tick: 0, type: 'tempo', uspq: 500000 });
+    const ev = []; let nextCh = 0;
+    for (const { info, evs } of partEv) {
+      const pitched = evs.some(e => !e.drum);
+      let ch = 9;
+      if (pitched) { if (nextCh === 9) nextCh++; ch = Math.min(15, nextCh++); ev.push({ tick: 0, type: 'program', ch, program: info.program || 0 }); }
+      const byM = new Map(); for (const e of evs) { if (!byM.has(e.m)) byM.set(e.m, []); byM.get(e.m).push(e); }
+      order.forEach((mi, k) => {
+        for (const e of byM.get(mi) || []) {
+          const c = e.drum ? 9 : ch, tick = startOf[k] + e.tick;
+          ev.push({ tick, type: 'on', ch: c, note: e.note, vel: e.vel });
+          ev.push({ tick: tick + Math.max(10, e.len - 6), type: 'off', ch: c, note: e.note });
+        }
+      });
+    }
+    return { title, mid: { format: 1, ppq: PPQ, tracks: [{ name: '', events: t0ev }, { name: title, events: ev }] } };
+  }
+  async function loadMusicXml(buf, filename, libKey = null) {
+    try {
+      const { title, mid } = parseMusicXml(await musicXmlText(buf, filename));
+      const name = title || filename.replace(/\.(musicxml|xml|mxl)$/i, '');
+      const song = midiToSong(mid, name, { noAlign: true });
+      song.drumCh = 9; song.dyn = true; song.fixedDrums = true; song.sheet = true;
+      const key = libKey || '🎼 ' + name;
+      if (!midiSongs[key] && !libKey) patternSel.add(new Option(key, key), 0);
+      registerSong(song, key);
+    } catch (err) { $('songInfo').textContent = 'Could not read that sheet music: ' + err.message; }
+  }
+  const SHEET_RE = /\.(musicxml|mxl|xml)$/i;
+  function loadSongFile(buf, filename, libKey = null) { return SHEET_RE.test(filename) ? loadMusicXml(buf, filename, libKey) : loadMidiBuffer(buf, filename, libKey); }
+  window.__mxl = { parseMusicXml, musicXmlText };
 
   // ---------- Game charts: Clone Hero / YARG / Rock Band-format song folders ----------
   // A song folder has notes.mid (track "PART DRUMS") or notes.chart, song.ini, and audio stems
@@ -2404,7 +2846,7 @@ function midiToSong(mid, name, opts = {}) {
     entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
     for (const e of entries) {
       const key = 'lib:' + e.path; libFiles[key] = e.ref;
-      libGroup.appendChild(new Option(e.path.replace(/\.midi?$/i, ''), key));
+      libGroup.appendChild(new Option(e.path.replace(/\.(midi?|musicxml|mxl)$/i, '') + (/\.(musicxml|mxl)$/i.test(e.path) ? ' 🎼' : ''), key));
     }
     const ph = patternSel.querySelector('option[value=""]');
     patternSel.insertBefore(libGroup, ph ? ph.nextSibling : patternSel.firstChild);
@@ -2414,7 +2856,7 @@ function midiToSong(mid, name, opts = {}) {
   }
   async function scanDir(dir, prefix = '', out = [], depth = 0) {
     for await (const [name, h] of dir.entries()) {
-      if (h.kind === 'file' && /\.midi?$/i.test(name)) out.push({ path: prefix + name, ref: h });
+      if (h.kind === 'file' && /\.(midi?|musicxml|mxl)$/i.test(name)) out.push({ path: prefix + name, ref: h });
       else if (h.kind === 'directory' && depth < 4) await scanDir(h, prefix + name + '/', out, depth + 1);
     }
     return out;
@@ -2439,7 +2881,7 @@ function midiToSong(mid, name, opts = {}) {
   };
   const storedRef = (name, data) => ({ name, arrayBuffer: async () => data });
   $('libInput').onchange = async (e) => {
-    const files = [...e.target.files].filter(f => /\.midi?$/i.test(f.name)); e.target.value = '';
+    const files = [...e.target.files].filter(f => /\.(midi?|musicxml|mxl)$/i.test(f.name)); e.target.value = '';
     if (!files.length) { $('songInfo').textContent = 'No .mid files found in that folder.'; return; }
     const root = (files[0].webkitRelativePath || '').split('/')[0] || 'MIDI library';
     $('songInfo').textContent = `Reading ${files.length} songs…`;
@@ -2491,13 +2933,15 @@ function midiToSong(mid, name, opts = {}) {
   }
 
   // ---------- Hit judging ----------
-  function onHit(lane, vel = 100, note = null) {
+  function onHit(lane, vel = 100, note = null, kb = false) {
     laneFlash[lane] = performance.now();
     if (calib) { calibHit(); return; }
     if ($('soundOnHit').checked && !compSound) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
     if (!running) return;
     const latency = (+$('latency').value || 0) / 1000;
-    const t = now() - startAt - latency;
+    // In wait mode, while the highway is holding at a note, the hit counts at that note's time.
+    const held = !!(play.wait && play.holding);
+    const t = held ? play.holdT : now() - startAt - latency;
     let best = null, bestAbs = Infinity;
     for (const n of play.notes) {
       if (n.t > t + WIN_GOOD) break;
@@ -2508,11 +2952,26 @@ function midiToSong(mid, name, opts = {}) {
     if (best && bestAbs <= WIN_GOOD) {
       best.dt = t - best.t;
       best.state = bestAbs <= WIN_PERFECT ? 'perfect' : 'good';
+      best.vel = vel; best.held = held;
+      // Dynamics: accents must be hit hard, ghost notes soft. A right note with the wrong dynamic scores as Good.
+      let dyn = null;
+      if ($('dynOn').checked && (best.acc || best.ghost)) {
+        stats.dynTotal++;
+        if (best.acc && vel < (+$('dynAcc').value || 100)) dyn = 'soft';
+        else if (!best.acc && best.ghost && (kb ? vel >= 120 : vel > (+$('dynGhost').value || 60))) dyn = 'loud';
+        best.dyn = dyn || 'ok';
+        if (dyn) { if (best.state === 'perfect') best.state = 'good'; } else stats.dynOk++;
+      }
+      // Open vs closed hi-hat: the kit sends a different note for an open hit (46/26).
+      if (!dyn && $('hhScore').checked && lanes[lane].id === 'hh' && note !== null && play.hasOpen) {
+        const hitOpen = note === 46 || note === 26;
+        if (hitOpen !== !!best.open) { dyn = hitOpen ? 'close' : 'open'; best.hhWrong = true; stats.hhWrong++; if (best.state === 'perfect') best.state = 'good'; }
+      }
       stats[best.state]++;
       stats.combo++; stats.best = Math.max(stats.best, stats.combo);
       stats.score += (best.state === 'perfect' ? 100 : 50) * (1 + Math.floor(stats.combo / 10) * 0.5);
-      stats.dts.push(best.dt * 1000);
-      effects.push({ lane, t0: performance.now(), kind: best.state, dt: best.dt });
+      if (!held) stats.dts.push(best.dt * 1000);
+      effects.push({ lane, t0: performance.now(), kind: best.state, dt: best.dt, dyn });
     } else {
       stats.extra++;
       effects.push({ lane, t0: performance.now(), kind: 'extra' });
@@ -2603,7 +3062,8 @@ function midiToSong(mid, name, opts = {}) {
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.repeat) return;
     const i = lanes.findIndex(l => l.key === e.key.toLowerCase());
-    if (i >= 0) { e.preventDefault(); onHit(i); }
+    if (i >= 0) { e.preventDefault(); onHit(i, e.shiftKey ? 127 : 90, lanes[i].id === 'hh' ? 42 : null, true); }
+    else if (e.key.toLowerCase() === 'q') { e.preventDefault(); onHit(laneIdx.hh, e.shiftKey ? 127 : 90, 46, true); }
     if (e.key === 'Enter') { e.preventDefault(); startBtn.onclick(); }
   });
 
@@ -2625,7 +3085,9 @@ function midiToSong(mid, name, opts = {}) {
       tr.insertCell().appendChild(b);
     });
   }
-  $('resetMap').onclick = () => { lanes.forEach((l, i) => l.notes = [...DEFAULT_LANES[i].notes]); saveMapping(); renderMapTable(); };
+  $('resetMap').onclick = () => { lanes.forEach(l => l.notes = [...DEFAULT_LANES.find(d => d.id === l.id).notes]); saveMapping(); renderMapTable(); };
+  $('pedalOn').checked = PEDAL_ON;
+  $('pedalOn').onchange = () => { if (running) stop(); try { localStorage.setItem(PEDAL_KEY, $('pedalOn').checked ? '1' : '0'); } catch (e) {} location.reload(); };
   renderMapTable();
 
   // ---------- Stats UI ----------
@@ -2637,7 +3099,7 @@ function midiToSong(mid, name, opts = {}) {
     $('sAcc').textContent = judged ? Math.round(100 * (stats.perfect + stats.good * 0.5) / judged) + '%' : '–';
     const avg = stats.dts.length ? stats.dts.reduce((a, b) => a + b, 0) / stats.dts.length : null;
     $('sTiming').textContent = avg === null ? '–' : (avg > 0 ? '+' : '') + Math.round(avg);
-    $('sBreakdown').innerHTML = [['Perfect', stats.perfect, 'var(--good)'], ['Good', stats.good, 'var(--ok)'], ['Miss', stats.miss, 'var(--bad)'], ['Extra', stats.extra, 'var(--faint)']].map(([k, v, c]) => `<span class="chip"><i style="background:${c}"></i>${k} <b>${v}</b></span>`).join('');
+    $('sBreakdown').innerHTML = [['Perfect', stats.perfect, 'var(--good)'], ['Good', stats.good, 'var(--ok)'], ['Miss', stats.miss, 'var(--bad)'], ['Extra', stats.extra, 'var(--faint)']].concat(stats.dynTotal ? [['Dynamics', `${stats.dynOk}/${stats.dynTotal}`, 'var(--accent)']] : []).map(([k, v, c]) => `<span class="chip"><i style="background:${c}"></i>${k} <b>${v}</b></span>`).join('');
   }
   resetStats();
   play = buildPlay();
@@ -2649,6 +3111,10 @@ function midiToSong(mid, name, opts = {}) {
     const horizon = t + AHEAD;
     const clickOn = $('clickOn').checked, hear = play.drill ? $(mode === 'course' ? 'hearCourse' : 'hearDrill').checked : $('hearDrums').checked;
     const late = (x) => x < t - 0.03; // skip anything already in the past
+    if (play.wait) { // wait mode: only the count-in clicks (the timeline pauses, so nothing else can be pre-scheduled)
+      while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) { const b = play.beats[schedIdx.beats++]; if (b.countIn && !late(b.t)) scheduleClick(startAt + b.t, b.down); }
+      return;
+    }
     while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) {
       const b = play.beats[schedIdx.beats++];
       if (((clickOn && !b.mute) || b.countIn) && !late(b.t)) scheduleClick(startAt + b.t, b.down);
@@ -2714,9 +3180,15 @@ function midiToSong(mid, name, opts = {}) {
   function frame(ts) {
     const pms = typeof ts === 'number' ? ts : performance.now();
     const W = cv.clientWidth, Hfull = cv.clientHeight;
-    const staffH = $('showNotation').checked ? Math.round(Math.min(190, Math.max(140, Hfull * 0.24))) : 0;
+    const pageView = $('pageView').checked;
+    const staffH = !pageView && $('showNotation').checked ? Math.round(Math.min(190, Math.max(140, Hfull * 0.24))) : 0;
     const H = Hfull - staffH;
     const speed = +$('speed').value; // px per second
+    if (running && play.wait) { // hold the highway at the next note until it's hit
+      const ns = play.notes, ta = now() - startAt; let nx = null;
+      for (let k = play.cur || 0; k < ns.length; k++) if (ns[k].state === 'pending') { nx = ns[k]; break; }
+      if (nx && ta >= nx.t) { startAt += ta - nx.t; play.holding = true; play.holdT = nx.t; } else play.holding = false;
+    }
     const t = running ? visualNow(pms) - startAt : 0;
     const boxHalf = Math.max(14, WIN_GOOD * speed), perfHalf = Math.max(6, WIN_PERFECT * speed);
     const hitY = H - Math.max(90, boxHalf + 52);
@@ -2737,6 +3209,8 @@ function midiToSong(mid, name, opts = {}) {
       if (t > play.end) finishRun();
     }
 
+    const nowMs = performance.now();
+    if (pageView) drawPage(t, W, Hfull); else {
     ctx.fillStyle = '#090a0d'; ctx.fillRect(0, 0, W, Hfull);
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     // Highway surface: dark at the far end, lifting toward the hit line
@@ -2753,7 +3227,6 @@ function midiToSong(mid, name, opts = {}) {
       ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + hwW, y); ctx.stroke();
     }
     // Lanes + receptors
-    const nowMs = performance.now();
     for (let i = 0; i < nLanes; i++) {
       const lx = x0 + i * laneW, col = lanes[i].color;
       const age = (nowMs - laneFlash[i]) / 1000, hot = age < 0.12;
@@ -2851,18 +3324,32 @@ function midiToSong(mid, name, opts = {}) {
       try { ctx.letterSpacing = '1px'; } catch (er) {}
       let label = e.kind.toUpperCase();
       if (e.kind === 'good') label = e.dt < 0 ? 'EARLY' : 'LATE';
+      if (e.dyn) { label = { soft: 'HIT HARDER', loud: 'TOO LOUD', open: 'OPEN HI-HAT', close: 'CLOSE HI-HAT' }[e.dyn]; ctx.fillStyle = '#a6b1ff'; }
       ctx.fillText(label, lx, hitY - boxHalf - 12 - a * 26);
       try { ctx.letterSpacing = '0px'; } catch (er) {}
       ctx.globalAlpha = 1;
     }
 
+    } // end of highway drawing
+    // Wait mode: show which drums it's waiting for
+    if (running && play.wait && play.holding && !pageView) {
+      const pulse = 0.55 + 0.45 * Math.sin(nowMs / 140);
+      for (const n of play.notes) {
+        if (n.t > play.holdT + 0.03) break;
+        if (n.state !== 'pending') continue;
+        ctx.strokeStyle = hexA(lanes[n.lane].color, pulse); ctx.lineWidth = 3;
+        roundRect(x0 + n.lane * laneW + 3, hitY - boxHalf - 4, laneW - 6, boxHalf * 2 + 8, 12); ctx.stroke();
+      }
+      ctx.fillStyle = '#c9cdd6'; ctx.font = `700 12px ${UIF}`; ctx.textAlign = 'center';
+      ctx.fillText('WAITING FOR YOU', W / 2, hitY - boxHalf - 34);
+    }
     // Progress bar
     if (running && play.end > 0 && isFinite(play.end)) {
       ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(x0, 0, hwW, 3);
       const pg = ctx.createLinearGradient(x0, 0, x0 + hwW, 0); pg.addColorStop(0, '#5a63e6'); pg.addColorStop(1, '#a6b1ff');
       ctx.fillStyle = pg; ctx.fillRect(x0, 0, hwW * Math.max(0, Math.min(1, t / play.end)), 3);
     }
-    if (running && play.loop && t >= play.countIn) {
+    if (running && play.loop && t >= play.countIn && !pageView) {
       const curSeg = play.drill ? null : [...play.segs].reverse().find(g => g.t0 <= t) || play.segs[0];
       const head = play.drill ? `${drillBpm()} BPM` : `Bars ${play.sec.A}–${play.sec.B}  ·  ${Math.round(100 / curSeg.scale)}%`;
       const txt = `${head}  ·  ${play.loopMsg || 'Press Stop when you are done'}`;
@@ -2873,7 +3360,7 @@ function midiToSong(mid, name, opts = {}) {
       ctx.fillStyle = '#c9cdd6'; ctx.font = `600 12px ${UIF}`; ctx.textAlign = 'left'; ctx.fillText(txt, x0 + 62, 29.5);
     }
     // Compact score while the sidebar is hidden
-    if (running && document.body.classList.contains('focus')) {
+    if (running && document.body.classList.contains('focus') && !pageView) {
       const judged = stats.perfect + stats.good + stats.miss;
       const acc = judged ? Math.round(100 * (stats.perfect + stats.good * 0.5) / judged) + '%' : '–';
       const side = W - (x0 + hwW) >= 150, rx = side ? x0 + hwW + 24 : x0 + hwW - 14;
@@ -2917,7 +3404,7 @@ function midiToSong(mid, name, opts = {}) {
         const ph = ((ac.currentTime - calib.t0) / CAL_BEAT) % 1;
         ctx.fillStyle = hexA('#7c8cff', Math.max(0.12, 1 - ph * 3)); ctx.beginPath(); ctx.arc(W / 2, cy + 108, 9, 0, Math.PI * 2); ctx.fill();
       }
-    } else if (!running) {
+    } else if (!running && !pageView) {
       const cy = H * 0.24; card(cy, 112);
       const judged = stats.perfect + stats.good + stats.miss;
       ctx.fillStyle = '#eceef2'; ctx.font = `700 20px ${UIF}`;
@@ -2929,8 +3416,8 @@ function midiToSong(mid, name, opts = {}) {
   }
   // ---------- Drum notation ----------
   // Staff position per lane in half-spaces from the top line (0 = top line, 8 = bottom line).
-  const STAFF_POS = { crash: -2, hh: -1, ride: 0, tom1: 1, tom2: 2, snare: 3, tom3: 5, kick: 7 };
-  const X_HEAD = { crash: 1, hh: 1, ride: 1 };
+  const STAFF_POS = { crash: -2, hh: -1, ride: 0, tom1: 1, tom2: 2, snare: 3, tom3: 5, kick: 7, hhp: 9 };
+  const X_HEAD = { crash: 1, hh: 1, ride: 1, hhp: 1 };
   function buildBars(p) {
     const beats = p.beats; if (!beats.length) return [];
     const bars = []; const beatBar = [], beatIn = [];
@@ -2974,8 +3461,55 @@ function midiToSong(mid, name, opts = {}) {
     return bars;
   }
 
-  function drawNotation(t, x0, y0, W, h) {
-    const bars = play.bars || [];
+  // ---------- Full-page sheet music (instead of the highway) ----------
+  let pageScroll = 0, pageHits = [], pagePreview = null;
+  function previewBars() { // when stopped on a song, show the whole song from bar 1 so any bar can be picked
+    const src = currentSource();
+    if (running || src.kind !== 'midi' || $('loopOn').checked) return null;
+    const key = src.song.key + '|' + $('tempoPct').value + '|' + $('drumCh').value;
+    if (pagePreview && pagePreview.key === key) return pagePreview.bars;
+    const sb = $('startBar').value; $('startBar').value = 1;
+    let bars = null; try { bars = buildPlay().bars; } finally { $('startBar').value = sb; }
+    pagePreview = { key, bars }; return bars;
+  }
+  function drawPage(t, W, H) {
+    const pv = previewBars(), bars = pv || play.bars || [];
+    ctx.fillStyle = '#f3efe4'; ctx.fillRect(0, 0, W, H);
+    const per = W > 1300 ? 4 : W > 820 ? 3 : 2, rowH = 160, top = 40, rows = Math.max(1, Math.floor((H - top) / rowH));
+    let cur = 0; for (let i = 0; i < bars.length; i++) if (bars[i].t0 <= t + 1e-6) cur = i;
+    const totalRows = Math.ceil(bars.length / per);
+    let firstRow;
+    if (running) firstRow = Math.max(0, Math.min(Math.floor(cur / per) - (rows > 2 ? 1 : 0), totalRows - rows));
+    else { pageScroll = Math.max(0, Math.min(pageScroll, Math.max(0, totalRows - rows))); firstRow = pageScroll; }
+    const src = currentSource();
+    ctx.fillStyle = '#1b1f27'; ctx.font = `700 15px ${UIF}`; ctx.textAlign = 'left';
+    ctx.fillText(src.kind === 'midi' ? src.song.name : src.kind === 'pattern' ? src.pat.name : '', 16, 26);
+    ctx.fillStyle = '#6b6457'; ctx.font = `500 12px ${UIF}`; ctx.textAlign = 'right';
+    const judged = stats.perfect + stats.good + stats.miss;
+    ctx.fillText(running ? `${judged ? Math.round(100 * (stats.perfect + stats.good * 0.5) / judged) + '% accuracy · ' : ''}combo ${stats.combo}` : pv ? 'Scroll for more · click a bar to start there · N switches back to the highway' : 'N switches back to the highway', W - 16, 26);
+    pageHits = [];
+    for (let r = 0; r < rows; r++) {
+      const ri = firstRow + r; if (ri * per >= bars.length) break;
+      drawNotation(t, 0, top + r * rowH, W, rowH, { bars, first: ri * per, n: per, hits: pageHits, mark: !running && pv ? Math.max(1, +$('startBar').value || 1) : null });
+    }
+  }
+  $('cv').addEventListener('wheel', (e) => { if (!$('pageView').checked || running) return; e.preventDefault(); pageScroll += e.deltaY > 0 ? 1 : -1; }, { passive: false });
+  $('cv').addEventListener('click', (e) => {
+    if (!$('pageView').checked || running || mode !== 'songs') return;
+    const r = $('cv').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const h = pageHits.find(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+    if (h && h.bar.num) { $('startBar').value = h.bar.num; if ($('loopOn').checked && +$('loopTo').value < h.bar.num) $('loopTo').value = h.bar.num + 3; play = buildPlay(); }
+  });
+  const PAGE_KEY = 'drumHighway.pageView.v1';
+  try { $('pageView').checked = localStorage.getItem(PAGE_KEY) === '1'; } catch (e) {}
+  $('pageView').onchange = () => { try { localStorage.setItem(PAGE_KEY, $('pageView').checked ? '1' : '0'); } catch (e) {} };
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.repeat || e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey) return;
+    $('pageView').checked = !$('pageView').checked; $('pageView').onchange();
+  });
+
+  function drawNotation(t, x0, y0, W, h, o = {}) {
+    const bars = o.bars || play.bars || [];
     ctx.fillStyle = '#f3efe4'; ctx.fillRect(x0, y0, W, h);
     ctx.fillStyle = '#d8d2c2'; ctx.fillRect(x0, y0, W, 1);
     const gap = Math.max(8, Math.min(11, h / 15));
@@ -2983,18 +3517,21 @@ function midiToSong(mid, name, opts = {}) {
     const posY = (pos) => top + pos * gap / 2;
     const ink = '#1b1f27';
     const left = x0 + 54, right = x0 + W - 16;
-    const nShow = W > 1100 ? 3 : 2;
+    const nShow = o.n || (W > 1100 ? 3 : 2);
     let cur = 0; for (let i = 0; i < bars.length; i++) if (bars[i].t0 <= t + 1e-6) cur = i;
+    const first = o.first ?? cur;
     const barW = (right - left) / nShow;
     ctx.strokeStyle = ink; ctx.lineWidth = 1;
     for (let l = 0; l < 5; l++) { const y = Math.round(posY(l * 2)) + 0.5; ctx.beginPath(); ctx.moveTo(x0 + 14, y); ctx.lineTo(right, y); ctx.stroke(); }
     ctx.fillStyle = ink; ctx.fillRect(x0 + 22, posY(2), 4, gap * 2); ctx.fillRect(x0 + 29, posY(2), 4, gap * 2);
-    const ts = (bars[cur] && bars[cur].beats.length) || 4;
+    const ts = (bars[first] && bars[first].beats.length) || 4;
     ctx.font = `700 ${Math.round(gap * 2.1)}px Georgia, serif`; ctx.textAlign = 'center';
     ctx.fillText(String(ts), x0 + 44, posY(4) - 1); ctx.fillText('4', x0 + 44, posY(8) - 1);
 
     for (let s = 0; s < nShow; s++) {
-      const bar = bars[cur + s]; const bx = left + s * barW + 8;
+      const bar = bars[first + s]; const bx = left + s * barW + 8;
+      if (o.hits && bar) o.hits.push({ x: left + s * barW, y: y0, w: barW, h, bar });
+      if (o.mark && bar && bar.num === o.mark) { ctx.fillStyle = 'rgba(124,140,255,.16)'; ctx.fillRect(left + s * barW + 2, y0 + 22, barW - 4, h - 30); }
       ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(left + (s + 1) * barW, posY(0)); ctx.lineTo(left + (s + 1) * barW, posY(8)); ctx.stroke();
       if (!bar) continue;
@@ -3003,8 +3540,8 @@ function midiToSong(mid, name, opts = {}) {
       const colX = (beat, sub) => bx + 10 + (beat + sub / per(beat)) / nb * inner;
       ctx.fillStyle = '#6b6457'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
       ctx.fillText(bar.countIn ? 'count-in' : `bar ${bar.num}` + (bar.swing ? '   ·   shuffle: ♪♪ = ♩♪ triplet' : ''), bx, y0 + 16);
-      if (s === 0 && running) {
-        ctx.fillStyle = 'rgba(90,176,255,.10)'; ctx.fillRect(left + 2, y0 + 22, barW - 4, h - 30);
+      if (first + s === cur && running) {
+        ctx.fillStyle = 'rgba(90,176,255,.10)'; ctx.fillRect(left + s * barW + 2, y0 + 22, barW - 4, h - 30);
         let k = 0; while (k + 1 < nb && bar.beats[k + 1] <= t) k++;
         const len = (k + 1 < nb ? bar.beats[k + 1] : bar.t1) - bar.beats[k];
         const frac = Math.max(0, Math.min(1, (t - bar.beats[k]) / len));
@@ -3014,7 +3551,7 @@ function midiToSong(mid, name, opts = {}) {
       }
       for (const voice of ['hands', 'feet']) {
         const up = voice === 'hands';
-        const vn = bar.notes.filter(n => (n.lane === 'kick') !== up);
+        const vn = bar.notes.filter(n => (n.lane === 'kick' || n.lane === 'hhp') !== up);
         for (let beat = 0; beat < nb; beat++) {
           const inBeat = vn.filter(n => n.beat === beat);
           if (!inBeat.length) {
