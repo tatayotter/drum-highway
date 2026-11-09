@@ -253,6 +253,9 @@
     <label class="field grow"><span>Song</span><select id="patternSel"><option value="">(pick or load a song)</option></select></label>
     <button id="libBtn" class="ghost" title="Choose a folder of MIDI songs; it is remembered"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Set MIDI library</span></button>
     <button id="fileBtn" class="ghost" title="Load a single .mid song file"><svg class="ic"><use href="#i-file"/></svg><span class="t">Load one song</span></button>
+    <button id="chartBtn" class="ghost" title="Choose a Clone Hero / YARG / Rock Band song folder (or a folder full of them): notes.mid or notes.chart plus the audio"><svg class="ic"><use href="#i-folder"/></svg><span class="t">Load charts</span></button>
+    <input id="chartInput" type="file" webkitdirectory multiple hidden>
+    <label class="field" id="chartDiffWrap" hidden><span>Difficulty</span><select id="chartDiff"></select></label>
     <span class="sep"></span>
     <label class="field" id="tempoWrap"><span>Tempo</span><select id="tempoPct"><option value="40">40%</option><option value="45">45%</option><option value="50">50%</option><option value="55">55%</option><option value="60">60%</option><option value="65">65%</option><option value="70">70%</option><option value="75">75%</option><option value="80">80%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>100%</option><option value="105">105%</option><option value="110">110%</option><option value="115">115%</option><option value="120">120%</option></select></label>
   </div>
@@ -450,7 +453,7 @@ function parseMidi(buf) {
 }
 
 // Converts a parsed MIDI into seconds-based notes, beat grid and per-channel summary.
-function midiToSong(mid, name) {
+function midiToSong(mid, name, opts = {}) {
   const all = [];
   mid.tracks.forEach((tr, ti) => tr.events.forEach(e => all.push({ ...e, track: ti })));
   all.sort((a, b) => a.tick - b.tick || (a.type === 'tempo' ? -1 : b.type === 'tempo' ? 1 : 0));
@@ -502,7 +505,7 @@ function midiToSong(mid, name) {
   let gridErr0 = 0;
   for (const e of ref) { const r = ((e.tick % g16) + g16) % g16; gridErr0 += Math.min(r, g16 - r) / g16; }
   let offset = 0;
-  if (ref.length && gridErr0 / ref.length > 0.12) {
+  if (!opts.noAlign && ref.length && gridErr0 / ref.length > 0.12) {
     let bestErr = errAt(0);
     const step = Math.max(1, Math.round(ppq / 96));
     for (let o = step; o < ppq; o += step) { const e = errAt(o); if (e < bestErr - 0.5) { bestErr = e; offset = o; } }
@@ -510,7 +513,7 @@ function midiToSong(mid, name) {
   const sigs = all.filter(e => e.type === 'timesig');
   const num0 = sigs.length ? sigs[0].num : 4;
   let phase = 0;
-  if (num0 === 4) { // backbeat: snares should fall on beats 2 and 4
+  if (num0 === 4 && !opts.noAlign) { // backbeat: snares should fall on beats 2 and 4
     const sn = drumOn.filter(e => e.note === 38 || e.note === 40).map(e => Math.round((e.tick - offset) / ppq));
     if (sn.length >= 8) {
       let bestP = 0, bestC = -1;
@@ -1488,7 +1491,7 @@ function midiToSong(mid, name) {
           const t = T(n.t);
           // merge duplicates (e.g. two notes on the same lane at the same instant)
           const last = notes[notes.length - 1];
-          if (!(last && last.lane === laneIdx[lane] && Math.abs(last.t - t) < 0.03)) notes.push({ t, lane: laneIdx[lane], state: 'pending', dt: 0, open: n.note === 46 });
+          if (!(last && last.lane === laneIdx[lane] && Math.abs(last.t - t) < 0.03)) notes.push({ t, lane: laneIdx[lane], state: 'pending', dt: 0, open: n.note === 46, ghost: !!s.dyn && n.vel < 50, acc: !!s.dyn && n.vel >= 118 });
         }
       } else if (!useAudio) backing.push({ t: T(n.t), dur: n.dur * scale, note: n.note, vel: n.vel, ch: n.ch, program: n.program, gain: n.gain ?? 0.8, pan: n.pan || 0 });
     }
@@ -1530,7 +1533,7 @@ function midiToSong(mid, name) {
         const lane = SONG_GM_TO_LANE[n.note];
         if (lane) {
           const t = T(n.t), last = notes[notes.length - 1];
-          if (!(last && last.lane === laneIdx[lane] && Math.abs(last.t - t) < 0.03)) notes.push({ t, lane: laneIdx[lane], state: 'pending', dt: 0, open: n.note === 46 });
+          if (!(last && last.lane === laneIdx[lane] && Math.abs(last.t - t) < 0.03)) notes.push({ t, lane: laneIdx[lane], state: 'pending', dt: 0, open: n.note === 46, ghost: !!s.dyn && n.vel < 50, acc: !!s.dyn && n.vel >= 118 });
         }
       } else if (!p.useAudio) backing.push({ t: T(n.t), dur: Math.min(n.dur, sec.to - n.t) * scale, note: n.note, vel: n.vel, ch: n.ch, program: n.program, gain: n.gain ?? 0.8, pan: n.pan || 0 });
     }
@@ -1594,7 +1597,9 @@ function midiToSong(mid, name) {
     $('songInfo').hidden = mode === 'course';
     if (mode === 'course') renderCourse();
     document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
-    $('drumChRow').hidden = src.kind !== 'midi';
+    $('drumChRow').hidden = src.kind !== 'midi' || !!src.song.fixedDrums;
+    $('chartDiffWrap').hidden = !(src.kind === 'midi' && src.song.chart);
+    if (src.kind === 'midi' && src.song.chart) fillChartDiff(src.song);
     if (src.kind === 'midi') {
       const s = src.song, sel = $('drumCh'); sel.innerHTML = '';
       s.chInfo.forEach((c, ch) => { if (c.count) {
@@ -1604,7 +1609,10 @@ function midiToSong(mid, name) {
       sel.value = String(s.drumCh);
       const dn = s.notes.filter(n => n.ch === s.drumCh && SONG_GM_TO_LANE[n.note]);
       const firstBar = dn.length ? s.barStarts.filter(b => b <= dn[0].t + 1e-6).length : 1;
-      $('songInfo').textContent = `${s.name}: ${Math.round(s.firstBpm)} BPM${s.tempoChanges > 1 ? ' (tempo changes)' : ''}, ${s.barStarts.length} bars, ${Math.floor(s.end / 60)}:${String(Math.round(s.end % 60)).padStart(2, '0')}. ${dn.length} drum hits to play, starting at bar ${firstBar}. The song's drums are muted so you play them.`;
+      const len = `${Math.round(s.firstBpm)} BPM${s.tempoChanges > 1 ? ' (tempo changes)' : ''}, ${s.barStarts.length} bars, ${Math.floor(s.end / 60)}:${String(Math.round(s.end % 60)).padStart(2, '0')}`;
+      if (s.orig) $('songInfo').textContent = `${s.name} · Drum Highway original · ${LVL[s.orig.lvl]} ${LVL_DOTS[s.orig.lvl]} · ${len}. ${s.orig.why} ${dn.length} drum hits.`;
+      else if (s.chart) $('songInfo').textContent = `${s.name} · ${s.chart.diff} chart · ${len}. ${dn.length} drum hits to play.` + (s.chart.note ? ' ' + s.chart.note : '');
+      else $('songInfo').textContent = `${s.name}: ${len}. ${dn.length} drum hits to play, starting at bar ${firstBar}. The song's drums are muted so you play them.`;
     } else if (src.kind === 'pattern') {
       const d = src.pat;
       $('voiceWrap').hidden = !voicable(d);
@@ -1671,6 +1679,8 @@ function midiToSong(mid, name) {
     const key = patternSel.value;
     $('starFind').hidden = true;
     if (key.startsWith('star:')) return pickStarter(+key.slice(5));
+    if (key.startsWith('orig:') && !midiSongs[key]) return registerSong(buildOriginal(+key.slice(5)), key);
+    if (chartFiles[key] && !midiSongs[key]) { if (running) stop(); return loadChart(key); }
     if (libFiles[key] && !midiSongs[key]) {
       if (running) stop();
       $('songInfo').textContent = 'Loading…';
@@ -1862,6 +1872,462 @@ function midiToSong(mid, name) {
   }
   window.__audio = { songAudio, autoSync, get node() { return audioNode; }, get el() { return audioEl; } };
 
+  // ---------- Original songs: composed for Drum Highway, free to play and share ----------
+  // Each song is written as sections (chords + groove + fill) and turned into a MIDI-like song at load time,
+  // so it plays through the same backing-instrument and highway code as any MIDI file.
+  const CHORD_IV = { '': [0, 4, 7], m: [0, 3, 7], '7': [0, 4, 7, 10], m7: [0, 3, 7, 10], maj7: [0, 4, 7, 11], '5': [0, 7], sus4: [0, 5, 7], sus2: [0, 2, 7] };
+  function chordOf(sym) {
+    const m = /^([A-G])([#b]?)(maj7|m7|m|7|5|sus4|sus2)?$/.exec(sym);
+    if (!m) throw new Error('Bad chord ' + sym);
+    const pc = (NOTE_PC[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + 12) % 12;
+    return { pc, iv: CHORD_IV[m[3] || ''] };
+  }
+  const atOrAbove = (pc, lo) => lo + (((pc - lo) % 12) + 12) % 12; // lowest note >= lo with this pitch class
+  // Drum grids: one string per voice, spread evenly over the bar (16 chars = 16ths, 12 chars = triplets).
+  // x = hit, X = accent, g = ghost note, - = rest.
+  const DKEY = { h: 42, o: 46, r: 51, b: 53, c: 49, s: 38, z: 37, k: 36, 1: 48, 2: 45, 3: 41 };
+  const GROOVES = {
+    quarter:  { h: 'x---x---x---x---', s: '----x-------x---', k: 'x-------x-------' },
+    hats8:    { h: 'X-x-X-x-X-x-X-x-', k: 'x-------x-------' },
+    rock8:    { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-------' },
+    rock8b:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-x-----' },
+    ride8:    { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-------x-x-----' },
+    crash4:   { c: 'x---x---x---x---', s: '----x-------x---', k: 'x-x-----x-x-----' },
+    disco:    { h: 'x---x---x---x---', o: '--x---x---x---x-', s: '----x-------x---', k: 'x---x---x---x---' },
+    discoB:   { h: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x---x---x---x---' },
+    ballad:   { h: 'x-x-x-x-x-x-x-x-', z: '----x-------x---', k: 'x-------x-------' },
+    balladC:  { r: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x-------x-x-----' },
+    garage:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-----x-x-x-----' },
+    garageC:  { o: 'x-x-x-x-x-x-x-x-', s: '----x-------x---', k: 'x-----x-x-x---x-' },
+    half:     { h: 'x-x-x-x-x-x-x-x-', s: '--------x-------', k: 'x-----x---x-----' },
+    halfB:    { r: 'x-x-x-x-x-x-x-x-', s: '--------x-------', k: 'x-x---x---x--x--' },
+    funk:     { h: 'X-x-X-x-X-x-X-x-', s: '---gX--g-g--X--g', k: 'x-x-------x--x--' },
+    funkC:    { o: 'x---x---x---x---', h: '--x---x---x---x-', s: '---gX--g-g--X--g', k: 'x-x---x---x--x--' },
+    shuffle:  { h: 'x-xx-xx-xx-x', s: '---x-----x--', k: 'x-----x-----' },
+    shuffleR: { r: 'x-xx-xx-xx-x', s: '---x-----x--', k: 'x-----x-x---' },
+    tribal:   { 3: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x--x----x--x----' },
+    tribalB:  { 3: 'X-x-x-X-x-x-X-x-', 1: '----x-------x---', k: 'x--x--x---x--x--' },
+    punk:     { h: 'x-x-x-x-x-x-x-x-', s: '--x---x---x---x-', k: 'x---x---x---x---' },
+    punkC:    { c: 'x---x---x---x---', s: '----x-------x---', k: 'x-x-x-x-x-x-x-x-' },
+    linear:   { h: '-xx--x-xx-x--x-x', s: '---gX------gX---', k: 'x-----x--x----x-' },
+    six16:    { h: 'XxxxXxxxXxxxXxxx', s: '----x-------x---', k: 'x-----x-x-----x-' },
+    six16g:   { h: 'XxxxXxxxXxxxXxxx', s: '-g--X--g-g--X---', k: 'x-x---x---x---x-' },
+    rockK8:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-x-x-x-x-x-x-x-' },
+    dbl:      { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx' },
+    dblC:     { c: 'x---x---x---x---', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx' },
+  };
+  // Fills take over the last `beats` beats of a section's final bar.
+  const FILLS = {
+    b1:   { beats: 1, g: { s: 'x-x-' } },
+    b2:   { beats: 2, g: { s: 'x-x-x-x-' } },
+    t2:   { beats: 2, g: { 1: 'x-x-----', 2: '----x---', 3: '------x-' } },
+    s16:  { beats: 1, g: { s: 'xxxx' } },
+    r16:  { beats: 2, g: { s: 'xxxx----', 1: '----xx--', 3: '------xx' } },
+    r16b: { beats: 4, g: { s: 'xxxx------------', 1: '----xxxx--------', 2: '--------xxxx----', 3: '------------xxxx' } },
+    flo:  { beats: 2, g: { 3: 'X-x-X-x-', k: 'x---x---' } },
+    trip: { beats: 2, g: { s: 'xxx---', 3: '---xxx' } },
+    trip4:{ beats: 4, g: { s: 'xxx---------', 1: '---xxx------', 2: '------xxx---', 3: '---------xxx' } },
+    lin:  { beats: 2, g: { s: 'x--x--x-', 3: '-x--x--x', k: '--x--x--' } },
+    six:  { beats: 2, g: { s: 'x--x--x-', 1: '-x------', 2: '----x---', 3: '-------x', k: '--x--x--' } },
+  };
+  function gridHits(g, beats, b0 = 0) { // -> [[step16, gmNote, vel]]
+    const out = [];
+    for (const [k, str] of Object.entries(g)) {
+      const per = str.length / beats;
+      for (let j = 0; j < str.length; j++) {
+        const c = str[j]; if (c === '-') continue;
+        out.push([b0 * 4 + j * 4 / per, DKEY[k], c === 'X' ? 118 : c === 'g' ? 36 : (k === 'h' || k === 'r' || k === 'o') ? 84 : 100]);
+      }
+    }
+    return out;
+  }
+  // Backing parts, per bar: [step16, interval or chord-tone, length in 16ths]. Steps are swung in shuffle songs.
+  const BASS = {
+    whole:    () => [[0, 0, 16]],
+    half:     () => [[0, 0, 8], [8, 0, 8]],
+    half5:    () => [[0, 0, 8], [8, 7, 8]],
+    quarters: () => [0, 4, 8, 12].map(s => [s, 0, 4]),
+    eighths:  () => [0, 2, 4, 6, 8, 10, 12, 14].map(s => [s, 0, 2]),
+    push:     () => [[0, 0, 3], [3, 0, 3], [6, 0, 2], [8, 0, 3], [11, 0, 3], [14, 0, 2]],
+    octaves:  () => [0, 2, 4, 6, 8, 10, 12, 14].map(s => [s, s % 4 ? 12 : 0, 2]),
+    funk:     (c) => [[0, 0, 3], [3, 0, 1], [6, 12, 1], [7, 0, 2], [10, 7, 2], [12, c.iv[3] ?? 10, 1], [14, 12, 2]],
+    boogie:   (c) => [[0, 0, 2], [2, 0, 2], [4, c.iv[1], 2], [6, c.iv[1], 2], [8, 7, 2], [10, 7, 2], [12, 9, 2], [14, 9, 2]],
+    tribal:   () => [[0, 0, 3], [3, 0, 3], [6, 0, 4], [10, 0, 3], [13, 0, 3]],
+    sixteen:  () => Array.from({ length: 16 }, (_, s) => [s, 0, 1]),
+  };
+  const COMP = { // chord hits: [step16, length]
+    pad:      () => [[0, 16]],
+    halfs:    () => [[0, 8], [8, 8]],
+    quarters: () => [[0, 3], [4, 3], [8, 3], [12, 3]],
+    stabs8:   () => [0, 2, 4, 6, 8, 10, 12, 14].map(s => [s, 2]),
+    offbeat:  () => [[2, 1], [6, 1], [10, 1], [14, 1]],
+    push:     () => [[0, 3], [3, 3], [6, 2], [8, 3], [11, 5]],
+    funk:     () => [[0, 1], [3, 1], [6, 1], [10, 1], [12, 1], [14, 1]],
+    power8:   () => [0, 2, 4, 6, 8, 10, 12, 14].map(s => [s, 2, 'power']),
+    powerPush:() => [[0, 3, 'power'], [3, 3, 'power'], [6, 2, 'power'], [8, 3, 'power'], [11, 5, 'power']],
+    powerHold:() => [[0, 8, 'power'], [8, 8, 'power']],
+    arp8:     () => [0, 2, 4, 6, 8, 10, 12, 14].map((s, i) => [s, 2, 'arp', [0, 1, 2, 3, 2, 1, 2, 3][i]]),
+    arp16:    () => Array.from({ length: 16 }, (_, s) => [s, 1, 'arp', [0, 1, 2, 3][s % 4]]),
+  };
+  const VOL = { bass: 108, comp: 74, lead: 84, pad: 58 };
+  const LEAD_DEG = { 1: 0, 2: 2, 4: 5, 5: 7, 6: 9, 8: 12, 9: 14 };
+  const ORIGINALS = [
+    { title: 'First Steps', lvl: 1, bpm: 72, why: 'Quarter-note hi-hat, kick on 1 and 3, snare on 2 and 4. The first beat every drummer learns.',
+      inst: { bass: 33, comp: 0, lead: 11, pad: 48 }, fill: 'b1',
+      parts: {
+        I: { ch: ['C', 'G', 'Am', 'F'], g: 'quarter', comp: 'halfs', bass: 'whole', fill: null },
+        V: { ch: ['C', 'G', 'Am', 'F'], g: 'quarter', comp: 'quarters', bass: 'half' },
+        C: { ch: ['F', 'G', 'C', 'Am', 'F', 'G', 'C', 'C'], g: 'quarter', comp: 'quarters', bass: 'quarters', pad: true, lead: '5-------3---1---' },
+        O: { ch: ['F', 'G', 'C', 'C'], g: 'quarter', comp: 'halfs', bass: 'half' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Open Road', lvl: 1, bpm: 88, why: 'The classic 8th-note rock beat, a crash at the start of each section and a two-beat snare fill.',
+      inst: { bass: 34, comp: 29, lead: 30, pad: 48 }, fill: 'b2',
+      parts: {
+        I: { ch: ['G', 'D', 'Em', 'C'], g: 'hats8', comp: 'powerHold', bass: 'half' },
+        V: { ch: ['G', 'D', 'Em', 'C'], g: 'rock8', comp: 'power8', bass: 'eighths' },
+        C: { ch: ['C', 'G', 'D', 'Em', 'C', 'G', 'D', 'D'], g: 'rock8', comp: 'power8', bass: 'eighths', pad: true, lead: '8-------5---3---' },
+        O: { ch: ['C', 'D', 'G', 'G'], g: 'rock8', comp: 'powerHold', bass: 'half' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Neon Nights', lvl: 1, bpm: 108, why: 'Disco: kick on every beat with an open hi-hat on the "and". Keep the foot steady and the hats bouncy.',
+      inst: { bass: 38, comp: 4, lead: 80, pad: 89 }, fill: 'b2',
+      parts: {
+        I: { ch: ['Am', 'F', 'C', 'G'], g: 'discoB', comp: 'pad', bass: 'whole' },
+        V: { ch: ['Am', 'F', 'C', 'G'], g: 'disco', comp: 'offbeat', bass: 'octaves' },
+        C: { ch: ['F', 'G', 'Am', 'Am', 'F', 'G', 'C', 'E'], g: 'disco', comp: 'offbeat', bass: 'octaves', pad: true, lead: '1-3-5-3-8---5---' },
+        B: { ch: ['Dm', 'Am', 'Dm', 'E'], g: 'discoB', comp: 'pad', bass: 'quarters', fill: 'r16' },
+        O: { ch: ['Am', 'F', 'C', 'G'], g: 'disco', comp: 'offbeat', bass: 'octaves' } },
+      form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+    { title: 'Rainy Window', lvl: 1, bpm: 70, why: 'A ballad: cross-stick in the verse, ride cymbal in the chorus, and slow tom fills down the kit.',
+      inst: { bass: 35, comp: 4, lead: 73, pad: 48 }, fill: 't2',
+      parts: {
+        I: { ch: ['D', 'A', 'Bm', 'G'], g: 'ballad', comp: 'arp8', bass: 'whole', fill: null },
+        V: { ch: ['D', 'A', 'Bm', 'G'], g: 'ballad', comp: 'arp8', bass: 'half' },
+        C: { ch: ['G', 'A', 'D', 'Bm', 'G', 'A', 'D', 'D'], g: 'balladC', comp: 'halfs', bass: 'half5', pad: true, lead: '3-------5---1---' },
+        O: { ch: ['G', 'A', 'D', 'D'], g: 'ballad', comp: 'arp8', bass: 'whole' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Garage Days', lvl: 2, bpm: 124, why: 'Rock with a syncopated kick on the "and" of 2, open-hat choruses and 16th-note fills around the toms.',
+      inst: { bass: 34, comp: 30, lead: 29 }, fill: 'r16', fill4: 's16',
+      parts: {
+        I: { ch: ['E5', 'D5', 'A5', 'E5'], g: 'hats8', comp: 'powerHold', bass: 'whole' },
+        V: { ch: ['E5', 'D5', 'A5', 'E5'], g: 'garage', comp: 'powerPush', bass: 'push' },
+        C: { ch: ['C5', 'D5', 'E5', 'E5', 'C5', 'D5', 'B5', 'B5'], g: 'garageC', comp: 'power8', bass: 'eighths', lead: '8---5---8-9-8---' },
+        B: { ch: ['A5', 'C5', 'A5', 'B5'], g: 'half', comp: 'powerHold', bass: 'half', fill: 'r16b' },
+        O: { ch: ['E5', 'D5', 'A5', 'E5'], g: 'garage', comp: 'powerPush', bass: 'push' } },
+      form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+    { title: 'Heavy Weather', lvl: 2, bpm: 140, why: 'Half-time feel (snare on 3 only) in the verse, then a full-time crash groove in the chorus. Feel the switch.',
+      inst: { bass: 34, comp: 30, pad: 50 }, fill: 'flo',
+      parts: {
+        I: { ch: ['D5', 'D5', 'Bb5', 'C5'], g: 'half', comp: 'powerHold', bass: 'whole' },
+        V: { ch: ['Dm', 'Dm', 'Bb', 'C'], g: 'half', comp: 'powerHold', bass: 'half', pad: true },
+        C: { ch: ['Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'A'], g: 'crash4', comp: 'power8', bass: 'eighths', pad: true },
+        B: { ch: ['G', 'G', 'A', 'A'], g: 'halfB', comp: 'powerHold', bass: 'half', fill: 'r16b' },
+        O: { ch: ['Dm', 'Dm', 'Bb', 'C'], g: 'half', comp: 'powerHold', bass: 'half' } },
+      form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+    { title: 'Pocket Change', lvl: 2, bpm: 94, why: 'Funk: ghost notes on the snare between the backbeats and a syncopated kick. Keep the ghosts very soft.',
+      inst: { bass: 36, comp: 7, lead: 61, pad: 16 }, fill: 'lin',
+      parts: {
+        I: { ch: ['Em7', 'A7'], g: 'funk', comp: 'funk', bass: 'funk', fill: null },
+        V: { ch: ['Em7', 'A7'], g: 'funk', comp: 'funk', bass: 'funk' },
+        C: { ch: ['G', 'A', 'Em7', 'Em7'], g: 'funkC', comp: 'funk', bass: 'funk', lead: '--8-8---5-6-8---' },
+        O: { ch: ['Em7', 'A7'], g: 'funk', comp: 'funk', bass: 'funk' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Back Porch Shuffle', lvl: 2, bpm: 100, swing: true, why: 'A 12-bar blues shuffle: hi-hat on the triplet "1-trip-let", ride for the later choruses, triplet fills.',
+      inst: { bass: 33, comp: 0, lead: 16 }, fill: 'trip',
+      parts: {
+        A: { ch: ['A7', 'A7', 'A7', 'A7', 'D7', 'D7', 'A7', 'A7', 'E7', 'D7', 'A7', 'E7'], g: 'shuffle', comp: 'offbeat', bass: 'boogie' },
+        R: { ch: ['A7', 'A7', 'A7', 'A7', 'D7', 'D7', 'A7', 'A7', 'E7', 'D7', 'A7', 'E7'], g: 'shuffleR', comp: 'offbeat', bass: 'boogie', lead: '5---6---5---3---', fill: 'trip4' },
+        O: { ch: ['A7', 'D7', 'A7', 'A7'], g: 'shuffle', comp: 'halfs', bass: 'boogie' } },
+      form: 'A12 A12 R12 R12 O4' },
+    { title: 'Tom Town', lvl: 2, bpm: 112, why: 'Tribal floor-tom groove with accents, then a rock chorus. Lots of movement between the drums.',
+      inst: { bass: 39, comp: 62, pad: 52 }, fill: 'r16',
+      parts: {
+        I: { ch: ['Em', 'Em', 'C', 'D'], g: 'tribal', comp: 'pad', bass: 'tribal', pad: true },
+        V: { ch: ['Em', 'Em', 'C', 'D'], g: 'tribalB', comp: 'push', bass: 'tribal', pad: true },
+        C: { ch: ['C', 'D', 'Em', 'Em', 'C', 'D', 'B', 'B'], g: 'rock8b', comp: 'push', bass: 'push', pad: true },
+        B: { ch: ['Am', 'Am', 'B', 'B'], g: 'tribal', comp: 'pad', bass: 'tribal', fill: 'r16b' },
+        O: { ch: ['Em', 'Em', 'C', 'D'], g: 'tribalB', comp: 'push', bass: 'tribal' } },
+      form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+    { title: 'Ride or Die', lvl: 3, bpm: 172, why: 'Fast punk: kick on every beat, snare on the "and" in the verse, crash-driven chorus. A stamina test.',
+      inst: { bass: 34, comp: 30 }, fill: 's16', fill4: 'b1',
+      parts: {
+        I: { ch: ['G5', 'C5', 'D5', 'C5'], g: 'hats8', comp: 'power8', bass: 'eighths', fill: 'b2' },
+        V: { ch: ['G5', 'C5', 'D5', 'C5'], g: 'punk', comp: 'power8', bass: 'eighths' },
+        C: { ch: ['E5', 'C5', 'G5', 'D5'], g: 'punkC', comp: 'power8', bass: 'eighths', fill: 'r16' },
+        O: { ch: ['G5', 'C5', 'D5', 'G5'], g: 'punk', comp: 'power8', bass: 'eighths' } },
+      form: 'I4 V8 C8 V8 C8 V8 C8 O4' },
+    { title: 'Linear Motion', lvl: 3, bpm: 98, why: 'Linear funk (no two limbs at once) in the verse and one-handed 16th hats with ghosts in the chorus.',
+      inst: { bass: 33, comp: 4, lead: 61, pad: 89 }, fill: 'six',
+      parts: {
+        I: { ch: ['Cm7', 'F7'], g: 'linear', comp: 'pad', bass: 'funk' },
+        V: { ch: ['Cm7', 'F7'], g: 'linear', comp: 'funk', bass: 'funk' },
+        C: { ch: ['Abmaj7', 'Gm7', 'Fm7', 'G7'], g: 'six16g', comp: 'funk', bass: 'funk', pad: true, lead: '8---8-9-5---3---' },
+        O: { ch: ['Cm7', 'F7'], g: 'linear', comp: 'funk', bass: 'funk' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Thunder Feet', lvl: 3, bpm: 112, why: '8th-note kick in the verse, then 16th-note kick under ride and crash. Builds a fast, even foot.',
+      inst: { bass: 34, comp: 30, pad: 48 }, fill: 'r16b',
+      parts: {
+        I: { ch: ['E5', 'C5', 'D5', 'B5'], g: 'rock8', comp: 'powerHold', bass: 'half', fill: 'r16' },
+        V: { ch: ['E5', 'C5', 'D5', 'B5'], g: 'rockK8', comp: 'power8', bass: 'eighths', fill: 'r16' },
+        C: { ch: ['C', 'D', 'Em', 'Em', 'C', 'D', 'B', 'B'], g: 'dbl', comp: 'powerHold', bass: 'sixteen', pad: true },
+        B: { ch: ['Am', 'Am', 'B', 'B'], g: 'dblC', comp: 'powerHold', bass: 'sixteen' },
+        O: { ch: ['E5', 'C5', 'D5', 'E5'], g: 'rockK8', comp: 'power8', bass: 'eighths' } },
+      form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+  ];
+  function buildOriginal(i) {
+    const def = ORIGINALS[i], PPQ = 480, S16 = PPQ / 4, BAR = PPQ * 4;
+    const t0 = [{ tick: 0, type: 'tempo', uspq: Math.round(60e6 / def.bpm) }, { tick: 0, type: 'timesig', num: 4, den: 4 }];
+    const ev = [];
+    const CH = { bass: 1, comp: 2, lead: 3, pad: 4 };
+    for (const [role, ch] of Object.entries(CH)) {
+      if (def.inst[role] == null) continue;
+      ev.push({ tick: 0, type: 'program', ch, program: def.inst[role] }, { tick: 0, type: 'cc', ch, cc: 7, value: VOL[role] });
+      ev.push({ tick: 0, type: 'cc', ch, cc: 10, value: { bass: 64, comp: 50, lead: 76, pad: 64 }[role] });
+    }
+    // straight 16ths -> shuffle: the "and" of each beat moves to the last triplet
+    const sw = (step) => { if (!def.swing) return step; const b = Math.floor(step / 4), f = step - b * 4; return b * 4 + (f === 2 ? 8 / 3 : f === 3 ? 10 / 3 : f === 1 ? 4 / 3 : f); };
+    const put = (tick, ch, note, vel, len) => {
+      tick = Math.round(tick); ev.push({ tick, type: 'on', ch, note, vel });
+      ev.push({ tick: tick + Math.max(10, Math.round(len) - 8), type: 'off', ch, note });
+    };
+    const form = def.form.split(/\s+/).map(x => ({ id: x[0], bars: +x.slice(1) }));
+    let bar = 0;
+    form.forEach((sec, si) => {
+      const P = def.parts[sec.id], next = form[si + 1];
+      const leadBars = P.lead ? P.lead.length / 16 : 0;
+      for (let b = 0; b < sec.bars; b++, bar++) {
+        const tb = bar * BAR, sym = P.ch[b % P.ch.length], c = chordOf(sym);
+        // --- drums ---
+        let hits = gridHits(GROOVES[P.g], 4);
+        const last = b === sec.bars - 1;
+        const fname = last ? (next ? (P.fill === undefined ? def.fill : P.fill) : null) : (def.fill4 && sec.bars >= 8 && b % 4 === 3 ? def.fill4 : null);
+        if (fname) { const F = FILLS[fname], from = (4 - F.beats) * 4; hits = hits.filter(h => h[0] < from - 0.01).concat(gridHits(F.g, F.beats, 4 - F.beats)); }
+        if (b === 0 && si > 0) { hits = hits.filter(h => !(h[0] === 0 && (h[1] === 42 || h[1] === 46 || h[1] === 51))); if (!hits.some(h => h[0] === 0 && h[1] === 49)) hits.push([0, 49, 112]); if (!hits.some(h => h[0] === 0 && h[1] === 36)) hits.push([0, 36, 100]); }
+        for (const [st, n, v] of hits) put(tb + st * S16, 9, n, v, S16);
+        // --- bass ---
+        const root = atOrAbove(c.pc, 28);
+        for (const [st, iv, len] of BASS[P.bass](c)) put(tb + sw(st) * S16, CH.bass, root + iv, 96, len * S16);
+        // --- chords ---
+        const voic = c.iv.map(iv => atOrAbove((c.pc + iv) % 12, 55)).sort((a, b) => a - b);
+        const pr = atOrAbove(c.pc, 40), power = [pr, pr + 7, pr + 12];
+        if (def.inst.comp != null) for (const [st, len, kind, idx] of COMP[P.comp]()) {
+          const notes = kind === 'power' ? power : kind === 'arp' ? [voic.concat(voic[0] + 12)[idx % (voic.length + 1)]] : voic;
+          for (const n of notes) put(tb + sw(st) * S16, CH.comp, n, kind === 'arp' ? 78 : 88, len * S16);
+        }
+        if (P.pad && def.inst.pad != null) for (const n of voic) put(tb, CH.pad, n + 12, 70, BAR);
+        // --- lead hook (chord tones, so it follows the harmony) ---
+        if (leadBars && def.inst.lead != null) {
+          const L = P.lead.slice((b % leadBars) * 16, (b % leadBars) * 16 + 16), base = atOrAbove(c.pc, 64);
+          for (let j = 0; j < 16; j++) {
+            const d = L[j]; if (d === '-' || d === '.') continue;
+            let len = 1; while (j + len < 16 && L[j + len] === '-') len++;
+            const semi = d === '3' ? c.iv[1] : d === '7' ? (c.iv[3] ?? 12) : LEAD_DEG[d];
+            if (semi === undefined) continue;
+            put(tb + sw(j) * S16, CH.lead, base + semi, 96, len * S16);
+          }
+        }
+      }
+    });
+    // ending: crash + kick and a held chord
+    const tb = bar * BAR, c = chordOf(def.parts[form[form.length - 1].id].ch[0]);
+    put(tb, 9, 49, 118, S16); put(tb, 9, 36, 110, S16);
+    put(tb, CH.bass, atOrAbove(c.pc, 28), 100, BAR);
+    if (def.inst.comp != null) for (const iv of c.iv) put(tb, CH.comp, atOrAbove((c.pc + iv) % 12, 55), 80, BAR);
+    if (def.inst.pad != null) for (const iv of c.iv) put(tb, CH.pad, atOrAbove((c.pc + iv) % 12, 67), 70, BAR);
+    ev.push({ tick: tb + BAR, type: 'off', ch: 9, note: 36 });
+    const song = midiToSong({ format: 1, ppq: PPQ, tracks: [{ name: '', events: t0 }, { name: def.title, events: ev }] }, def.title, { noAlign: true });
+    song.drumCh = 9; song.dyn = true; song.fixedDrums = true; song.orig = def;
+    return song;
+  }
+  let origGroup = null;
+  function fillOriginals() {
+    origGroup = document.createElement('optgroup');
+    origGroup.label = `♪ Drum Highway originals · ${ORIGINALS.length} songs, built in`;
+    ORIGINALS.forEach((d, i) => origGroup.appendChild(new Option(`${LVL_DOTS[d.lvl]} ${d.title} · ${d.bpm} BPM`, 'orig:' + i)));
+    const ph = patternSel.querySelector('option[value=""]');
+    patternSel.insertBefore(origGroup, ph ? ph.nextSibling : patternSel.firstChild);
+  }
+
+  // ---------- Game charts: Clone Hero / YARG / Rock Band-format song folders ----------
+  // A song folder has notes.mid (track "PART DRUMS") or notes.chart, song.ini, and audio stems
+  // (song.ogg, guitar.ogg, drums.ogg, …). We play every stem except the drums, so you hear the real band.
+  const chartFiles = {}; // option key -> { dir, files: {lowercase name: File|handle} }
+  const DIFFS = [['Expert', 96, 'Expert'], ['Hard', 84, 'Hard'], ['Medium', 72, 'Medium'], ['Easy', 60, 'Easy']];
+  const parseIni = (txt) => { const o = {}; for (const ln of txt.split(/\r?\n/)) { const m = /^\s*([^=\[;#]+?)\s*=\s*(.*?)\s*$/.exec(ln); if (m) o[m[1].toLowerCase()] = m[2]; } return o; };
+  const yes = (v) => /^(1|true|yes)$/i.test(String(v || '').trim());
+  // pad colours -> General MIDI drums.  cym: true when the yellow/blue/green note is a cymbal.
+  function gemNote(lane, cym, five) {
+    if (lane === 0) return 36;
+    if (lane === 1) return 38;
+    if (five) return [0, 0, 42, 45, 49, 41][lane];
+    return lane === 2 ? (cym ? 42 : 48) : lane === 3 ? (cym ? 51 : 45) : (cym ? 49 : 41);
+  }
+  // Rock Band-style notes.mid -> { diffs: {Expert: [{tick, note, vel}]}, mid (tempo track) }
+  function chartFromMid(buf, ini) {
+    const mid = parseMidi(buf);
+    const tr = mid.tracks.find(t => /^PART DRUMS$/i.test(t.name.trim())) || mid.tracks.find(t => /PART.*DRUM/i.test(t.name));
+    if (!tr) throw new Error('this notes.mid has no drum part (PART DRUMS)');
+    const ons = tr.events.filter(e => e.type === 'on'), offs = tr.events.filter(e => e.type === 'off');
+    const five = yes(ini.five_lane_drums) || ons.some(e => e.note === 101);
+    // tom markers (110 yellow, 111 blue, 112 green) mark spans where those pads are toms
+    const spans = { 2: [], 3: [], 4: [] };
+    for (const e of ons) if (e.note >= 110 && e.note <= 112) {
+      const off = offs.find(o => o.note === e.note && o.tick > e.tick);
+      spans[e.note - 108].push([e.tick, off ? off.tick : e.tick + 1]);
+    }
+    const anyMarker = spans[2].length + spans[3].length + spans[4].length > 0;
+    const pro = anyMarker || yes(ini.pro_drums);
+    const isTom = (lane, tick) => (spans[lane] || []).some(([a, b]) => tick >= a && tick < b);
+    const diffs = {};
+    for (const [name, base] of DIFFS) {
+      const out = [];
+      for (const e of ons) {
+        let lane = e.note - base;
+        if (name === 'Expert' && e.note === 95) lane = 0; // Expert+ double-kick notes
+        if (lane < 0 || lane > (five ? 5 : 4)) continue;
+        // not pro: guess hi-hat on yellow and crash on green, tom on blue
+        const cym = five ? true : pro ? !isTom(lane, e.tick) : lane !== 3;
+        out.push({ tick: e.tick, note: gemNote(lane, cym, five), vel: e.vel <= 1 ? 40 : e.vel >= 127 ? 120 : 100 });
+      }
+      if (out.length) diffs[name] = out;
+    }
+    const tempoTrack = { name: '', events: mid.tracks.flatMap(t => t.events.filter(e => e.type === 'tempo' || e.type === 'timesig')) };
+    return { ppq: mid.ppq, tempoTrack, diffs, pro };
+  }
+  // notes.chart (text format) -> same shape
+  function chartFromText(txt) {
+    const secs = {}; let cur = null;
+    for (const raw of txt.split(/\r?\n/)) {
+      const ln = raw.trim();
+      const h = /^\[(.+)\]$/.exec(ln); if (h) { cur = secs[h[1]] = []; continue; }
+      if (cur && ln && ln !== '{' && ln !== '}') cur.push(ln);
+    }
+    const song = {}; for (const ln of secs.Song || []) { const m = /^(\w+)\s*=\s*"?(.*?)"?$/.exec(ln); if (m) song[m[1].toLowerCase()] = m[2]; }
+    const ppq = +song.resolution || 192;
+    const tev = [];
+    for (const ln of secs.SyncTrack || []) {
+      const m = /^(\d+)\s*=\s*(B|TS)\s+(\d+)(?:\s+(\d+))?/.exec(ln); if (!m) continue;
+      if (m[2] === 'B') tev.push({ tick: +m[1], type: 'tempo', uspq: Math.round(60e9 / +m[3]) });
+      else tev.push({ tick: +m[1], type: 'timesig', num: +m[3], den: 1 << (m[4] ? +m[4] : 2) });
+    }
+    const diffs = {}; let pro = false;
+    for (const [name] of DIFFS) {
+      const lines = secs[name + 'Drums']; if (!lines) continue;
+      const byTick = new Map();
+      for (const ln of lines) { const m = /^(\d+)\s*=\s*N\s+(\d+)/.exec(ln); if (!m) continue; const t = +m[1]; if (!byTick.has(t)) byTick.set(t, new Set()); byTick.get(t).add(+m[2]); }
+      const all = [...byTick.values()];
+      const five = all.some(s => s.has(5));
+      const hasCym = all.some(s => s.has(66) || s.has(67) || s.has(68)); pro = pro || hasCym;
+      const out = [];
+      for (const [tick, set] of [...byTick].sort((a, b) => a[0] - b[0])) for (const n of set) {
+        let lane = n === 32 ? 0 : n; if (lane > 5) continue;
+        if (!five && lane === 5) continue;
+        const cym = five ? true : hasCym ? set.has(64 + lane) : lane !== 3;
+        const vel = set.has(39 + lane) ? 40 : set.has(33 + lane) ? 120 : 100;
+        out.push({ tick, note: gemNote(lane, cym, five), vel });
+      }
+      if (out.length) diffs[name] = out;
+    }
+    return { ppq, tempoTrack: { name: '', events: tev }, diffs, pro, meta: song };
+  }
+  function chartSong(ch, diff, title) {
+    const ev = [];
+    for (const n of ch.diffs[diff]) { ev.push({ tick: n.tick, type: 'on', ch: 9, note: n.note, vel: n.vel }); ev.push({ tick: n.tick + Math.max(1, ch.ppq >> 3), type: 'off', ch: 9, note: n.note }); }
+    const song = midiToSong({ format: 1, ppq: ch.ppq, tracks: [ch.tempoTrack, { name: 'PART DRUMS', events: ev }] }, title, { noAlign: true });
+    song.drumCh = 9; song.dyn = true; song.fixedDrums = true;
+    return song;
+  }
+  // WAV encoder for the mixed stems (stored like any backing audio)
+  function wavOf(buf) {
+    const nc = buf.numberOfChannels, len = buf.length, sr = buf.sampleRate, out = new ArrayBuffer(44 + len * nc * 2), v = new DataView(out);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + len * nc * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, nc, true); v.setUint32(24, sr, true); v.setUint32(28, sr * nc * 2, true); v.setUint16(32, nc * 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, len * nc * 2, true);
+    const chans = Array.from({ length: nc }, (_, c) => buf.getChannelData(c));
+    let p = 44; for (let i = 0; i < len; i++) for (let c = 0; c < nc; c++) { const s = Math.max(-1, Math.min(1, chans[c][i])); v.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7fff, true); p += 2; }
+    return out;
+  }
+  const AUDIO_RE = /\.(ogg|opus|mp3|wav|flac|m4a)$/i;
+  const fileOf = async (ref) => ref.getFile ? ref.getFile() : ref;
+  async function loadChart(key) {
+    const c = chartFiles[key]; if (!c) return;
+    $('songInfo').textContent = 'Loading chart…';
+    try {
+      const F = c.files;
+      const ini = F['song.ini'] ? parseIni(await (await fileOf(F['song.ini'])).text()) : {};
+      const ch = F['notes.mid'] ? chartFromMid(await (await fileOf(F['notes.mid'])).arrayBuffer(), ini) : chartFromText(await (await fileOf(F['notes.chart'])).text());
+      const meta = ch.meta || {};
+      const name = ini.name || meta.name || c.dir.split('/').pop(), artist = ini.artist || meta.artist || '';
+      const title = artist ? `${artist} – ${name}` : name;
+      const avail = DIFFS.map(d => d[0]).filter(d => ch.diffs[d]);
+      if (!avail.length) throw new Error('no drum notes found in this chart');
+      const diff = avail[0];
+      const song = chartSong(ch, diff, title);
+      song.chart = { src: ch, diff, avail, title, note: '' };
+      // audio: every stem except drums (and preview/crowd)
+      const stems = Object.keys(F).filter(n => AUDIO_RE.test(n) && !/^(drums|preview|crowd)/i.test(n));
+      const drumStems = Object.keys(F).filter(n => AUDIO_RE.test(n) && /^drums/i.test(n));
+      audioTried.add(key); // don't restore an older copy while we mix this one
+      registerSong(song, key);
+      if (stems.length) {
+        $('audioInfo').textContent = `Mixing ${stems.length} audio track${stems.length > 1 ? 's' : ''} without the drums…`;
+        ensureAudio();
+        const bufs = [];
+        for (const n of stems) { try { bufs.push(await ac.decodeAudioData(await (await fileOf(F[n])).arrayBuffer())); } catch (e) {} }
+        if (bufs.length) {
+          const len = Math.max(...bufs.map(b => b.length)), mix = ac.createBuffer(2, len, ac.sampleRate);
+          for (const b of bufs) for (let chn = 0; chn < 2; chn++) { const src = b.getChannelData(Math.min(chn, b.numberOfChannels - 1)), dst = mix.getChannelData(chn); for (let i = 0; i < src.length; i++) dst[i] += src[i]; }
+          let peak = 0; for (let chn = 0; chn < 2; chn++) { const d = mix.getChannelData(chn); for (let i = 0; i < d.length; i += 4) peak = Math.max(peak, Math.abs(d[i])); }
+          if (peak > 0.98) { const g = 0.98 / peak; for (let chn = 0; chn < 2; chn++) { const d = mix.getChannelData(chn); for (let i = 0; i < d.length; i++) d[i] *= g; } }
+          const delay = ini.delay !== undefined ? +ini.delay || 0 : meta.offset ? (+meta.offset || 0) * 1000 : 0;
+          await attachAudio(key, stems.join(' + '), wavOf(mix), delay);
+          songAudio[key].syncNote = drumStems.length ? 'Drums removed from the mix.' : 'This chart has no separate drum track, so the original drums are still in the audio.';
+          song.chart.note = drumStems.length ? 'Backing: the real recording with the drums taken out.' : 'Heads up: this chart has no separate drum audio, so you will hear the original drummer too.';
+          if (curSong() === song) { if (!running) play = buildPlay(); refreshSourceUI(); }
+        } else $('audioInfo').textContent = 'Could not decode this chart’s audio files.';
+      } else { song.chart.note = 'No audio files found in this folder.'; refreshSourceUI(); }
+    } catch (e) { $('songInfo').textContent = 'Could not load that chart: ' + e.message; }
+  }
+  function fillChartDiff(s) {
+    const sel = $('chartDiff');
+    if (sel.dataset.for !== s.key || sel.options.length !== s.chart.avail.length) { sel.innerHTML = ''; s.chart.avail.forEach(d => sel.add(new Option(d, d))); sel.dataset.for = s.key; }
+    sel.value = s.chart.diff;
+  }
+  $('chartDiff').onchange = () => {
+    const s = curSong(); if (!s || !s.chart) return;
+    if (running) stop();
+    const ns = chartSong(s.chart.src, $('chartDiff').value, s.chart.title);
+    ns.chart = { ...s.chart, diff: $('chartDiff').value };
+    registerSong(ns, s.key);
+  };
+  let chartGroup = null;
+  function fillCharts(dirs, rootName) { // dirs: [{dir, files}]
+    Object.keys(chartFiles).forEach(k => { delete chartFiles[k]; delete midiSongs[k]; });
+    if (chartGroup) chartGroup.remove();
+    chartGroup = document.createElement('optgroup'); chartGroup.label = `Charts · ${rootName} (${dirs.length})`;
+    dirs.sort((a, b) => a.dir.localeCompare(b.dir, undefined, { numeric: true, sensitivity: 'base' }));
+    for (const d of dirs) { const key = 'chart:' + d.dir; chartFiles[key] = d; chartGroup.appendChild(new Option('🥁 ' + (d.dir.split('/').pop() || rootName), key)); }
+    const ph = patternSel.querySelector('option[value=""]');
+    patternSel.insertBefore(chartGroup, ph ? ph.nextSibling : patternSel.firstChild);
+    if (dirs.length === 1) { patternSel.value = 'chart:' + dirs[0].dir; loadChart('chart:' + dirs[0].dir); }
+    else $('songInfo').textContent = dirs.length ? `Found ${dirs.length} charts in “${rootName}”. Pick one from the Song list (they're at the top).` : `No charts (notes.mid or notes.chart) found in “${rootName}”.`;
+  }
+  $('chartBtn').onclick = () => $('chartInput').click();
+  $('chartInput').onchange = (e) => {
+    const all = [...e.target.files]; e.target.value = '';
+    if (!all.length) return;
+    const byDir = new Map();
+    for (const f of all) {
+      const parts = (f.webkitRelativePath || f.name).split('/'), dir = parts.slice(0, -1).join('/');
+      if (!byDir.has(dir)) byDir.set(dir, {}); byDir.get(dir)[f.name.toLowerCase()] = f;
+    }
+    const rootName = (all[0].webkitRelativePath || '').split('/')[0] || 'charts';
+    const dirs = [...byDir].filter(([, fs]) => fs['notes.mid'] || fs['notes.chart']).map(([dir, files]) => ({ dir, files }));
+    if (!dirs.length && all.some(f => /\.sng$/i.test(f.name))) { $('songInfo').textContent = 'This folder has .sng packages. Drum Highway reads unpacked song folders (notes.mid or notes.chart plus audio). Unpack them with a tool like the Clone Hero “SngCli”, or download the folder version.'; return; }
+    fillCharts(dirs, rootName);
+  };
+  window.__orig = { ORIGINALS, buildOriginal, chartFromText, chartFromMid };
+
   // ---------- Starter 20: classic songs to learn drums on ----------
   // The app can't ship the songs themselves (they're copyrighted), so this is a curated list that picks up
   // matching MIDI files from your library automatically, and links to a search for the ones you don't have yet.
@@ -1908,7 +2374,7 @@ function midiToSong(mid, name) {
     });
     starGroup.label = `★ Starter 20 · ${have} in your library`;
     const keep = patternSel.value;
-    const ph = patternSel.querySelector('option[value=""]');
+    const ph = origGroup || patternSel.querySelector('option[value=""]');
     patternSel.insertBefore(starGroup, ph ? ph.nextSibling : patternSel.firstChild);
     patternSel.value = keep;
   }
@@ -1928,6 +2394,7 @@ function midiToSong(mid, name) {
 
   // ---------- MIDI library (a folder of songs, remembered between visits) ----------
   const libFiles = {}; // option value -> FileSystemFileHandle or File
+  fillOriginals();
   fillStarter();
   let libGroup = null;
   function fillLibrary(entries, folderName) { // entries: [{path, ref}]
@@ -2005,18 +2472,22 @@ function midiToSong(mid, name) {
       song.drumCh = drumCh;
       const key = libKey || '🎵 ' + song.name;
       if (!midiSongs[key] && !libKey) patternSel.add(new Option(key, key), 0);
-      song.key = key;
-      midiSongs[key] = song;
-      if (running) stop();
-      // Skip silent lead-in: start at the bar where the first audible note is.
-      const firstReal = song.notes.find(n => n.vel > 8);
-      song.firstBar = firstReal ? Math.max(1, song.barStarts.filter(b => b <= firstReal.t + 1e-6).length) : 1;
-      mode = 'songs'; try { localStorage.setItem(MODE_KEY, 'songs'); } catch (e) {}
-      fillStarter(); patternSel.value = key; $('startBar').value = song.firstBar;
-      refreshSourceUI();
+      registerSong(song, key);
     } catch (err) {
       $('songInfo').textContent = 'Could not read that file: ' + err.message;
     }
+  }
+  // Makes a parsed song the current one (MIDI files, built-in originals and game charts all go through here).
+  function registerSong(song, key) {
+    song.key = key;
+    midiSongs[key] = song;
+    if (running) stop();
+    // Skip silent lead-in: start at the bar where the first audible note is.
+    const firstReal = song.notes.find(n => n.vel > 8);
+    song.firstBar = firstReal ? Math.max(1, song.barStarts.filter(b => b <= firstReal.t + 1e-6).length) : 1;
+    mode = 'songs'; try { localStorage.setItem(MODE_KEY, 'songs'); } catch (e) {}
+    fillStarter(); patternSel.value = key; $('startBar').value = song.firstBar;
+    refreshSourceUI();
   }
 
   // ---------- Hit judging ----------
@@ -2626,6 +3097,8 @@ function midiToSong(mid, name) {
   // mix a hex colour toward white (k>0) or black (k<0)
   function mixW(hex, k) { const n = parseInt(hex.slice(1), 16); const f = (c) => Math.round(k >= 0 ? c + (255 - c) * k : c * (1 + k)); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
   function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+  // New here? Start on the first built-in original so Songs mode has something to play right away.
+  if (!patternSel.value) { try { const k = 'orig:0', song = buildOriginal(0); song.key = k; song.firstBar = 1; midiSongs[k] = song; patternSel.value = k; $('startBar').value = 1; } catch (e) { console.error(e); } }
   refreshSourceUI();
   requestAnimationFrame(frame);
 

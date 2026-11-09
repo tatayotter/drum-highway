@@ -12,6 +12,14 @@ A note-highway practice app for electronic drum kits. Play along with MIDI songs
 
 Everything you load (MIDI library, drum samples, backing audio, settings) stays in your own browser.
 
+## Songs that come with the app
+
+**Drum Highway originals:** 12 songs written for this app, built in, from Beginner to Advanced (rock, disco, ballad, funk, blues shuffle, tribal toms, punk, linear funk, 16th-note kick). Each one has a bass, chord and melody backing part and teaches one skill. Pick them at the top of the Song list. They are free to share with the app.
+
+## Clone Hero / YARG / Rock Band charts
+
+Press **Load charts** and choose a song folder (or a folder full of song folders). Drum Highway reads `notes.mid` or `notes.chart`, `song.ini` and the audio stems. It plays every stem except the drums, so you hear the real recording without the original drummer. Pick Easy, Medium, Hard or Expert in the **Difficulty** box. Charts with only one `song.ogg` still work, but the original drums stay in the audio. Packed `.sng` files need to be unpacked first.
+
 ## Drum Highway Companion (optional, Windows)
 
 If your pads don't make their own sound, or you want to use your own drum samples, the Companion plays them with very low latency (ASIO or WASAPI exclusive) and passes your hits to Drum Highway.
