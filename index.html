@@ -367,6 +367,13 @@
   .kgkit { width: 100%; height: auto; display: block; background: radial-gradient(circle at 50% 60%, #191c25, #0f1116); border: 1px solid var(--line); border-radius: 12px; }
   .kgkit .pad { transition: fill .12s, stroke .12s; }
   .kgstat { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  /* ---------- acoustic kit ---------- */
+  .acdots { display: flex; gap: 6px; } .acdots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); } .acdots i.on { background: var(--good); border-color: var(--good); }
+  .acmeter { height: 10px; border-radius: 6px; background: var(--surface-3); overflow: hidden; } .acmeter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .08s; }
+  .actips { color: #c9cdd6; font-size: 13px; line-height: 1.6; padding-left: 20px; margin: 4px 0; }
+  .acrows { display: flex; flex-direction: column; gap: 4px; }
+  .acrow { display: grid; grid-template-columns: 140px 50px 1fr; gap: 10px; align-items: baseline; font-size: 13px; } .acrow b { color: var(--warn, #f2c14e); } .acrow b.kgok { color: var(--good); } .acrow em { color: var(--muted); font-style: normal; font-size: 12px; }
+  .aclive { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; color: var(--muted); font-size: 13px; } .aclive span { background: var(--surface-3); border-radius: 8px; padding: 4px 9px; } .aclive span.new { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
   .kgunk { background: rgba(242,193,78,.1); border: 1px solid rgba(242,193,78,.35); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
   .kgunk .chipset button { height: 28px; }
   .kgmodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -567,6 +574,14 @@
       </div>
       <div class="btns"><button id="calibBtn"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate latency</span></button></div>
       <p class="hint" id="calibInfo">Calibrate plays 16 clicks. Hit any pad (or key) exactly with each click you hear, and the timing offset is set for you.</p>
+      <h2>Acoustic kit (beta)</h2>
+      <div class="rows">
+        <div class="row"><label class="sw"><input id="acOn" type="checkbox"> I play an acoustic kit (listen with a microphone)</label></div>
+        <div class="row"><label>Microphone <select id="acDev"><option value="">Default microphone</option></select></label></div>
+      </div>
+      <div class="btns"><button id="acCal"><svg class="ic"><use href="#i-target"/></svg><span class="t">Calibrate my drums</span></button></div>
+      <p class="hint" id="acInfo"></p>
+      <p class="hint">The app learns the sound of each drum (and, optionally, pairs hit together) and how loud your soft and hard hits are. Wear headphones so the mic only hears the kit. Then run <b>Calibrate latency</b> above with the mic on.</p>
       <h2>Companion app</h2>
       <div class="rows">
         <div class="row"><label class="sw"><input id="useComp" type="checkbox"> Use Drum Highway Companion</label></div>
@@ -584,6 +599,12 @@
       <p class="hint">No kit plugged in? Use the keyboard: the key shown under each lane plays that lane. Enter starts and stops.</p>
 
     </div>
+  </div>
+</div>
+<div id="acModal" class="modal" hidden>
+  <div class="mcard kgcard" role="dialog" aria-label="Acoustic kit setup">
+    <div id="acBody"></div>
+    <div class="rbtns"><button id="acCancel" class="ghost">Close</button><span class="spacer"></span><button id="acBack" class="ghost">Back</button><button id="acRedo" class="ghost">Redo</button><button id="acSkip" class="ghost">Skip</button><button id="acNext" class="primary"><span class="t">Start</span></button></div>
   </div>
 </div>
 <div id="kgModal" class="modal" hidden>
@@ -1777,6 +1798,7 @@ function midiToSong(mid, name, opts = {}) {
   // Timing windows (seconds). The hit box on screen is drawn exactly this tall, so what you see is what counts.
   const WINDOWS = { tight: [0.035, 0.080], normal: [0.050, 0.120], relaxed: [0.070, 0.160] };
   let WIN_PERFECT = 0.050, WIN_GOOD = 0.120;
+  let micGrace = 0; // the mic recognises a hit ~50 ms after it happens, so wait that long before calling a note missed
   const WIN_KEY = 'drumHighway.window.v1';
   function applyWindow() { [WIN_PERFECT, WIN_GOOD] = WINDOWS[$('hitWin').value] || WINDOWS.normal; try { localStorage.setItem(WIN_KEY, $('hitWin').value); } catch (e) {} }
   try { const w = localStorage.getItem(WIN_KEY); if (w && WINDOWS[w]) $('hitWin').value = w; } catch (e) {}
@@ -3782,16 +3804,17 @@ function midiToSong(mid, name, opts = {}) {
   }
 
   // ---------- Hit judging ----------
-  function onHit(lane, vel = 100, note = null, kb = false) {
+  // at: the hit's time on the audio clock (mic hits are recognised a little after they happen); no drum sound for mic hits
+  function onHit(lane, vel = 100, note = null, kb = false, at = null) {
     laneFlash[lane] = performance.now();
     if (kg.active) kgHit(lane, vel);
-    if (calib) { calibHit(); return; }
-    if ($('soundOnHit').checked && !compSound) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
+    if (calib) { calibHit(at); return; }
+    if (at === null && $('soundOnHit').checked && !compSound) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
     if (!running) return;
     const latency = (+$('latency').value || 0) / 1000;
     // In wait mode, while the highway is holding at a note, the hit counts at that note's time.
     const held = !!(play.wait && play.holding);
-    const t = held ? play.holdT : now() - startAt - latency;
+    const t = held ? play.holdT : (at ?? now()) - startAt - latency;
     // Flams and drags: the extra stroke(s) just after (or before) a judged flam note belong to it
     const wall = performance.now();
     for (let k = play.cur || 0; k < play.notes.length; k++) {
@@ -4006,8 +4029,8 @@ function midiToSong(mid, name, opts = {}) {
     btnText('calibBtn', 'Calibrating…'); $('calibBtn').disabled = true;
     $('calibInfo').textContent = 'Listen to the first 4 clicks, then hit any pad together with each click.';
   }
-  function calibHit() {
-    const t = ac.currentTime;
+  function calibHit(at = null) {
+    const t = at ?? ac.currentTime;
     const scored = calib.clicks.slice(CAL_LEAD);
     let best = null; for (const c of scored) if (best === null || Math.abs(t - c) < Math.abs(t - best)) best = c;
     if (best !== null && Math.abs(t - best) < CAL_BEAT * 0.45) calib.taps.push(t - best);
@@ -4091,7 +4114,7 @@ function midiToSong(mid, name, opts = {}) {
             effects.push({ lane: n.lane, t0: performance.now(), kind: 'good', dt: 0, dyn: n.flam === 1 ? 'flam' : 'drag' });
           }
         }
-        if (n.state === 'pending' && t - n.t > WIN_GOOD) { n.state = 'miss'; stats.miss++; stats.combo = 0; effects.push({ lane: n.lane, t0: performance.now(), kind: 'miss' }); renderStats(); }
+        if (n.state === 'pending' && t - n.t > WIN_GOOD + micGrace) { n.state = 'miss'; stats.miss++; stats.combo = 0; effects.push({ lane: n.lane, t0: performance.now(), kind: 'miss' }); renderStats(); }
       }
       if (play.gaps) for (const gp of play.gaps) if (!gp.done && t > gp.t1 + 0.15) { // judge each improvised fill: worth 4 notes
         gp.done = true;
@@ -4161,7 +4184,7 @@ function midiToSong(mid, name, opts = {}) {
       ctx.strokeStyle = hexA(col, hot ? 1 : 0.55); ctx.lineWidth = hot ? 2 : 1.5; ctx.stroke();
       // label (and the key for keyboard players) under each pad
       const ly = hitY + RH + 15, key = lanes[i].key === ' ' ? 'SPACE' : lanes[i].key.toUpperCase();
-      const showKey = !currentInput && !compLive();
+      const showKey = !currentInput && !compLive() && !ACX.running;
       ctx.font = `600 ${laneW < 80 ? 10 : 11}px ${UIF}`; ctx.textAlign = 'center';
       const name = laneW < 64 ? lanes[i].name.replace('Floor tom', 'Floor').replace('Hi-hat', 'HH').toUpperCase() : lanes[i].name.toUpperCase();
       try { ctx.letterSpacing = '0.5px'; } catch (e) {}
@@ -4872,6 +4895,364 @@ function midiToSong(mid, name, opts = {}) {
   $('tlClear').onclick = (e) => { e.stopPropagation(); if (running) stop(); $('loopOn').checked = false; refreshLoopUI(); syncTimeline(); play = buildPlay(); };
   // ---------- Kit setup guide: connect, check every pad, calibrate, pick a mode ----------
   const GUIDE_KEY = 'drumHighway.guide.v1';
+  // ===================== Acoustic kit (beta): a microphone listens to a real drum kit =====================
+  // How it works:
+  //  1. Hit detection: every 256 samples we take an FFT, sum it into 24 log-spaced bands and look for a sudden
+  //     rise in many bands at once (spectral flux). The hit's time comes from the audio clock, so timing is exact
+  //     even if the screen lags.
+  //  2. Each hit gets a fingerprint: band energies in the first ~20 ms (the attack) and the next ~25 ms (the body),
+  //     with any ringing from earlier hits subtracted.
+  //  3. Calibration records each drum (soft and hard) and, optionally, common pairs hit together.
+  //  4. Recognition: the fingerprint is split into the calibrated drums (non-negative least squares, like NMF with
+  //     fixed templates), so kick + hi-hat together comes out as both. When it closely matches a recorded example
+  //     (single drum or pair), that example's answer wins. Loudness gives the velocity, per drum.
+  const AC_KEY = 'drumHighway.acoustic.v1';
+  const AC_SOUNDS = [
+    { id: 'kick', lane: 'kick', note: 36, name: 'Kick', tip: 'Use the pedal like you normally would.' },
+    { id: 'snare', lane: 'snare', note: 38, name: 'Snare', tip: 'Hit the middle of the head.' },
+    { id: 'hh', lane: 'hh', note: 42, name: 'Hi-hat, closed', tip: 'Keep your foot down so the hi-hat is closed.' },
+    { id: 'hho', lane: 'hh', note: 46, name: 'Hi-hat, open', tip: 'Lift your foot a little so the cymbals ring.' },
+    { id: 'tom1', lane: 'tom1', note: 48, name: 'Tom 1', tip: 'The smallest (highest) tom.' },
+    { id: 'tom2', lane: 'tom2', note: 45, name: 'Tom 2', tip: 'The second rack tom. No second tom? Skip it.' },
+    { id: 'tom3', lane: 'tom3', note: 41, name: 'Floor tom', tip: 'The big tom on the floor.' },
+    { id: 'crash', lane: 'crash', note: 49, name: 'Crash', tip: 'Wait for it to stop ringing a little between hits.' },
+    { id: 'ride', lane: 'ride', note: 51, name: 'Ride', tip: 'Play on the ride the way you do in a groove (not the bell).' },
+    { id: 'hhp', lane: 'hhp', note: 44, name: 'Hi-hat pedal', tip: 'Close the hi-hat with your foot ("chick").', pedal: true },
+  ].filter(x => !x.pedal || PEDAL_ON);
+  const AC_COMBOS = [['kick', 'hh'], ['kick', 'snare'], ['snare', 'hh'], ['kick', 'crash'], ['kick', 'ride'], ['kick', 'hho'], ['snare', 'crash']];
+  const AC_N = 6, AC_NC = 4; // hits per drum, per pair
+  const acSound = (id) => AC_SOUNDS.find(x => x.id === id);
+  const ACX = { on: false, running: false, devId: '', devName: '', model: null, stream: null, src: null, node: null, sink: null, det: null, sink2: null, listen: null, recent: [] };
+  try { const v = JSON.parse(localStorage.getItem(AC_KEY) || 'null'); if (v) Object.assign(ACX, { on: !!v.on, devId: v.devId || '', model: v.model || null }); } catch (e) {}
+  const acSave = () => { try { localStorage.setItem(AC_KEY, JSON.stringify({ on: ACX.on, devId: ACX.devId, model: ACX.model })); } catch (e) {} };
+
+  // ---- FFT (radix-2, in place) ----
+  function makeFFT(n) {
+    const rev = new Uint32Array(n), cos = new Float32Array(n / 2), sin = new Float32Array(n / 2), bits = Math.log2(n);
+    for (let i = 0; i < n; i++) { let r = 0; for (let b = 0; b < bits; b++) r |= ((i >> b) & 1) << (bits - 1 - b); rev[i] = r; }
+    for (let i = 0; i < n / 2; i++) { cos[i] = Math.cos(-2 * Math.PI * i / n); sin[i] = Math.sin(-2 * Math.PI * i / n); }
+    return (re, im) => {
+      for (let i = 0; i < n; i++) { const j = rev[i]; if (j > i) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+      for (let size = 2; size <= n; size <<= 1) {
+        const half = size >> 1, step = n / size;
+        for (let i = 0; i < n; i += size) for (let j = 0, k = 0; j < half; j++, k += step) {
+          const a = i + j, b = a + half, tr = re[b] * cos[k] - im[b] * sin[k], ti = re[b] * sin[k] + im[b] * cos[k];
+          re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        }
+      }
+    };
+  }
+  // ---- Hit detector: feed it audio; it calls onHit({t, f, db}) ~45 ms after each hit, and onFrame({db, E}) every hop ----
+  const AC_NB = 24, AC_DIM = AC_NB * 2;
+  function makeDetector(sr, cb) {
+    const N = 1024, HOP = 256, fft = makeFFT(N), win = new Float32Array(N), ring = new Float32Array(N), re = new Float32Array(N), im = new Float32Array(N);
+    for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+    const edges = []; const fmax = Math.min(16000, sr * 0.45);
+    for (let b = 0; b <= AC_NB; b++) edges.push(Math.max(1, Math.round(40 * Math.pow(fmax / 40, b / AC_NB) / (sr / N))));
+    for (let b = 1; b <= AC_NB; b++) if (edges[b] <= edges[b - 1]) edges[b] = edges[b - 1] + 1;
+    const D = { sr, pos: 0, fill: 0, idx: 0, tBase: 0, frames: [], prevL: null, fluxHist: [], lastOn: -1, pending: [], frameNo: 0,
+      eps: new Float32Array(AC_NB).fill(1e-7), noiseDb: -75, gate: 9, minFlux: 10 };
+    D.push = (data, t0) => { // data: Float32Array of samples, t0: audio-clock time of data[0]
+      D.tBase = t0 - D.idx / sr;
+      for (let i = 0; i < data.length; i++) {
+        ring[D.pos] = data[i]; D.pos = (D.pos + 1) % N; D.idx++; D.fill++;
+        if (D.fill >= HOP && D.idx >= N) { D.fill = 0; frame(); }
+      }
+    };
+    function frame() {
+      for (let i = 0; i < N; i++) { re[i] = ring[(D.pos + i) % N] * win[i]; im[i] = 0; }
+      fft(re, im);
+      const E = new Float32Array(AC_NB); let tot = 0;
+      for (let b = 0; b < AC_NB; b++) { let s = 0; for (let k = edges[b]; k < edges[b + 1]; k++) s += re[k] * re[k] + im[k] * im[k]; E[b] = s; tot += s; }
+      const db = 10 * Math.log10(tot / N + 1e-12);
+      // "SuperFlux": compare with the frame two hops back, max-filtered across neighbouring bands, so the
+      // flicker of a ringing cymbal or snare tail doesn't look like a new hit
+      let flux = 0; const L = new Float32Array(AC_NB), P2 = D.prevL2;
+      for (let b = 0; b < AC_NB; b++) {
+        L[b] = Math.log(E[b] + D.eps[b]);
+        if (P2) flux += Math.max(0, L[b] - Math.max(P2[b], P2[Math.max(0, b - 1)], P2[Math.min(AC_NB - 1, b + 1)]));
+      }
+      D.prevL2 = D.prevL; D.prevL = L;
+      const t = D.tBase + D.idx / sr; // time of the newest sample in this window
+      D.frames.push({ E, db, flux, t }); if (D.frames.length > 24) D.frames.shift();
+      D.frameNo++;
+      if (cb.onFrame) cb.onFrame({ db, E });
+      // peak picking on the previous frame
+      const F = D.frames, n = F.length;
+      if (n >= 3) {
+        const a = F[n - 3], p = F[n - 2], c = F[n - 1];
+        const hist = D.fluxHist.slice().sort((x, y) => x - y), med = hist.length ? hist[hist.length >> 1] : 0;
+        const thr = Math.max(D.minFlux, med * 2.2 + 3);
+        const before = n >= 5 ? Math.min(F[n - 4].db, F[n - 5].db) : -200; // a new hit adds energy on top of whatever is still ringing
+        if (p.flux > thr && p.flux > a.flux && p.flux >= c.flux && Math.max(p.db, c.db) > D.noiseDb + D.gate && Math.max(p.db, c.db) > before + 0.5 && (D.lastOn < 0 || D.frameNo - D.lastOn > 0.04 * sr / HOP)) {
+          D.lastOn = D.frameNo;
+          const pre = new Float32Array(AC_NB); const pf = F.slice(Math.max(0, n - 5), n - 3);
+          pf.forEach(x => { for (let b = 0; b < AC_NB; b++) pre[b] += x.E[b] / pf.length; });
+          D.pending.push({ t: p.t - HOP / 2 / sr, start: D.frameNo - 2, pre });
+        }
+      }
+      D.fluxHist.push(D.frames[n - 1].flux); if (D.fluxHist.length > 30) D.fluxHist.shift();
+      // finished hits: 4 frames of attack + 5 of body (~48 ms at 48 kHz)
+      while (D.pending.length && D.frameNo - D.pending[0].start >= 9) {
+        const P = D.pending.shift(), back = D.frameNo - P.start; // frames since onset frame (inclusive count)
+        const fr = F.slice(F.length - back);
+        const A = new Float32Array(AC_NB), B = new Float32Array(AC_NB); let pk = -200;
+        fr.forEach((x, i) => { const dst = i < 4 ? A : i < 9 ? B : null; if (dst) for (let b = 0; b < AC_NB; b++) dst[b] += x.E[b] / (i < 4 ? 4 : 5); if (i < 4) pk = Math.max(pk, x.db); });
+        const f = new Array(AC_DIM);
+        for (let b = 0; b < AC_NB; b++) { f[b] = Math.max(0, A[b] - P.pre[b] * 0.9); f[AC_NB + b] = Math.max(0, B[b] - P.pre[b] * 0.8); }
+        cb.onHit({ t: P.t, f, db: pk });
+      }
+    }
+    return D;
+  }
+  // ---- Recognition ----
+  const vsum = (v) => v.reduce((a, b) => a + b, 0);
+  const norm1 = (v) => { const s = vsum(v) || 1; return v.map(x => x / s); };
+  const bhat = (p, q) => { let s = 0; for (let i = 0; i < p.length; i++) s += Math.sqrt(p[i] * q[i]); return s; };
+  function nnls(W, v, iters = 120) { // v ≈ Σ h_i W_i, h ≥ 0 (multiplicative updates)
+    const K = W.length, d = v.length, h = new Array(K).fill(vsum(v) / K || 1e-9);
+    const WtV = W.map(w => w.reduce((a, x, j) => a + x * v[j], 0));
+    const G = W.map(a => W.map(b => a.reduce((s, x, j) => s + x * b[j], 0)));
+    for (let it = 0; it < iters; it++) for (let i = 0; i < K; i++) { let den = 1e-12; for (let j = 0; j < K; j++) den += G[i][j] * h[j]; h[i] *= WtV[i] / den; }
+    let err = 0, tot = 0; for (let j = 0; j < d; j++) { let r = v[j]; for (let i = 0; i < K; i++) r -= h[i] * W[i][j]; err += r * r; tot += v[j] * v[j]; }
+    return { h, rel: Math.sqrt(err / (tot || 1)) };
+  }
+  function acPrep(M, f) { const v = f.map((x, j) => x * M.w[j]); return { v, p: norm1(v) }; }
+  function acDecide(M, f, opts = {}) { // f: raw fingerprint, or opts.p: an already weighted + normalised one
+    const p = opts.p || acPrep(M, f).p;
+    let best = -1, bestSim = -1; // nearest recorded example (single drum or pair)
+    M.ex.forEach((e, i) => { if (i === opts.skip) return; const s = bhat(p, e.p); if (s > bestSim) { bestSim = s; best = i; } });
+    const { h, rel } = nnls(M.T, p);
+    const tot = vsum(h) || 1, share = h.map(x => x / tot);
+    const nn = best >= 0 && bestSim >= M.simThr;
+    return { ids: nn ? M.ex[best].l : acSet(M.ids, share, M.theta), share: Object.fromEntries(M.ids.map((id, i) => [id, share[i]])), sim: bestSim, rel, nn };
+  }
+  function acSet(ids, share, theta) { // which drums are in the hit, from their shares of it
+    let set = ids.filter((id, i) => share[i] >= theta);
+    if (!set.length) set = [ids[share.indexOf(Math.max(...share))]];
+    const a = ids.indexOf('hh'), b = ids.indexOf('hho');
+    if (set.includes('hh') && set.includes('hho')) set = set.filter(x => x !== (share[a] >= share[b] ? 'hho' : 'hh'));
+    return set;
+  }
+  const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+  function acTrain(rec) { // rec: { singles: {id: [{f, db}]}, combos: [{l: [ids], f, db}], noiseDb }
+    const ids = Object.keys(rec.singles).filter(id => rec.singles[id].length >= 2);
+    if (ids.length < 2) return null;
+    const all = ids.flatMap(id => rec.singles[id].map(x => x.f));
+    const mean = new Array(AC_DIM).fill(0); all.forEach(f => { const n = norm1(f); n.forEach((x, j) => mean[j] += x / all.length); });
+    const w = mean.map(x => 1 / Math.max(x, 1e-4)); // equalise the bands so the highs count as much as the lows
+    const M = { v: 1, ids, w, T: [], ex: [], lv: {}, theta: 0.22, simThr: 0.97, noiseDb: rec.noiseDb, made: Date.now(), combos: rec.combos.length };
+    for (const id of ids) {
+      const ps = rec.singles[id].map(x => norm1(x.f.map((y, j) => y * w[j])));
+      M.T.push(norm1(ps[0].map((_, j) => vsum(ps.map(p => p[j])) / ps.length)));
+      const dbs = rec.singles[id].map(x => x.db).sort((a, b) => a - b);
+      let lo = dbs[0], hi = dbs[dbs.length - 1]; if (hi - lo < 8) lo = hi - 12;
+      M.lv[id] = { lo, hi };
+      rec.singles[id].forEach(x => M.ex.push({ l: [id], p: norm1(x.f.map((y, j) => y * w[j])).map(z => +z.toFixed(5)) }));
+    }
+    rec.combos.filter(c => c.l.every(id => ids.includes(id))).forEach(x => M.ex.push({ l: x.l, p: norm1(x.f.map((y, j) => y * w[j])).map(z => +z.toFixed(5)) }));
+    // tune the two thresholds on the recorded hits (leave-one-out for the nearest-example part)
+    let bestScore = -1, bestTh = [0.22, 0.97];
+    const cache = M.ex.map((e, i) => { let bs = -1, bl = null; M.ex.forEach((o, k) => { if (k === i) return; const s = bhat(e.p, o.p); if (s > bs) { bs = s; bl = o.l; } }); const { h } = nnls(M.T, e.p); const t = vsum(h) || 1; return { bs, bl, share: h.map(x => x / t) }; });
+    for (const th of [0.12, 0.16, 0.2, 0.25, 0.3, 0.36, 0.42]) for (const st of [0.9, 0.93, 0.95, 0.96, 0.97, 0.98, 0.99, 1.01]) {
+      let ok = 0;
+      M.ex.forEach((e, i) => {
+        const c = cache[i], out = c.bs >= st ? c.bl : acSet(ids, c.share, th); if (sameSet(out, e.l)) ok += e.l.length > 1 ? 1.2 : 1;
+      });
+      if (ok > bestScore) { bestScore = ok; bestTh = [th, st]; }
+    }
+    [M.theta, M.simThr] = bestTh;
+    // how well it recognises your own recordings (leave-one-out)
+    M.check = M.ex.map((e, i) => ({ l: e.l, got: acDecide(M, null, { skip: i, p: e.p }).ids }));
+    return M;
+  }
+  function acVel(M, id, db) { const L = M.lv[id]; if (!L) return 100; return Math.max(1, Math.min(127, Math.round(35 + (db - L.lo) / Math.max(1, L.hi - L.lo) * 80))); }
+  // a recognised hit becomes a normal pad hit (with its audio-clock time)
+  function acOnHit(ev) {
+    if (ACX.listen) { ACX.listen(ev); return; }
+    const M = ACX.model; if (!M) return;
+    const r = acDecide(M, ev.f);
+    ACX.recent.unshift({ ids: r.ids, t: performance.now() }); ACX.recent.length = Math.min(ACX.recent.length, 6);
+    log(`mic   ${r.ids.map(id => acSound(id)?.name || id).join(' + ')}  +${Math.round(ev.db - (M.noiseDb ?? -75))} dB  ${r.nn ? 'match' : 'mix'} ${r.sim.toFixed(2)}`);
+    for (const id of r.ids) {
+      const s = acSound(id); if (!s || laneIdx[s.lane] === undefined) continue;
+      const share = r.ids.length > 1 ? Math.max(0.05, r.share[id] || 0.5) : 1;
+      onHit(laneIdx[s.lane], acVel(M, id, ev.db + 10 * Math.log10(share)), s.note, false, ev.t);
+    }
+  }
+  // ---- Microphone ----
+  const AC_WORKLET = `class DHTap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(512);this.n=0;this.t=0}process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.t=currentTime;this.b.set(c,this.n);this.n+=c.length;if(this.n>=512){this.port.postMessage({t:this.t,d:this.b},[this.b.buffer]);this.b=new Float32Array(512);this.n=0}}return true}}registerProcessor('dh-tap',DHTap)`;
+  async function acStart() {
+    ensureAudio();
+    if (ACX.running) return true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: ACX.devId ? { ideal: ACX.devId } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+      if (!acStart.loaded) { const url = URL.createObjectURL(new Blob([AC_WORKLET], { type: 'application/javascript' })); await ac.audioWorklet.addModule(url); acStart.loaded = true; }
+      const src = ac.createMediaStreamSource(stream), node = new AudioWorkletNode(ac, 'dh-tap', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 }), sink = ac.createGain();
+      sink.gain.value = 0; src.connect(node).connect(sink).connect(ac.destination);
+      ACX.det = makeDetector(ac.sampleRate, { onHit: acOnHit, onFrame: (fr) => { if (ACX.onFrame) ACX.onFrame(fr); } });
+      if (ACX.model) { ACX.det.noiseDb = ACX.model.noiseDb ?? -75; }
+      node.port.onmessage = (e) => ACX.det.push(e.data.d, e.data.t);
+      micGrace = 0.09; Object.assign(ACX, { stream, src, node, sink, running: true, devName: stream.getAudioTracks()[0]?.label || 'Microphone' });
+      const s = stream.getAudioTracks()[0]?.getSettings?.(); if (s && s.deviceId) ACX.devId = s.deviceId;
+      acStatus(); return true;
+    } catch (e) { acStatus('Microphone not available: ' + e.message); return false; }
+  }
+  function acStop() {
+    if (!ACX.running) return;
+    try { ACX.src.disconnect(); ACX.node.disconnect(); ACX.sink.disconnect(); } catch (e) {}
+    ACX.stream.getTracks().forEach(t => t.stop());
+    micGrace = 0; Object.assign(ACX, { running: false, stream: null, src: null, node: null, sink: null, det: null }); acStatus();
+  }
+  function acStatus(err) {
+    const M = ACX.model;
+    $('acOn').checked = ACX.on;
+    $('acInfo').textContent = err || (!ACX.on ? 'Off. Turn it on to play an acoustic kit with a microphone.' : !M ? 'Not calibrated yet: press Calibrate.' :
+      `Calibrated ${new Date(M.made).toLocaleDateString()} · ${M.ids.length} sounds${M.combos ? ` + ${M.combos} pair hits` : ''}. ` + (ACX.running ? `Listening: ${ACX.devName}.` : 'Press Start (or any button) to start listening.'));
+    if (ACX.on && ACX.running) { midiStatus.textContent = '🎤 Acoustic kit · ' + ACX.devName; midiStatus.className = 'on'; }
+    else if (!ACX.on && /^🎤/.test(midiStatus.textContent)) selectInput(inputSel.value);
+  }
+  async function acFillDevices() {
+    const sel = $('acDev'); sel.innerHTML = '';
+    let devs = []; try { devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) {}
+    if (!devs.length) sel.add(new Option('Default microphone', ''));
+    devs.forEach((d, i) => sel.add(new Option(d.label || `Microphone ${i + 1}`, d.deviceId)));
+    if (ACX.devId && devs.some(d => d.deviceId === ACX.devId)) sel.value = ACX.devId;
+  }
+  // ---- Calibration wizard ----
+  const acw = { step: 'intro', i: 0, rec: null, cur: [], frames: [], back: null, live: [] };
+  function acWizard(from) {
+    if (running) stop(); closeBrowse();
+    acw.back = from || null; acw.step = 'intro'; acw.i = 0; acw.cur = [];
+    acw.rec = { singles: {}, combos: [], noiseDb: -75 };
+    $('acModal').hidden = false; acFillDevices().then(acRender); acRender();
+  }
+  function acClose() { ACX.listen = null; ACX.onFrame = null; $('acModal').hidden = true; if (acw.back === 'guide') { kg.active = true; $('kgModal').hidden = false; kg.step = 2; kgRender(); } }
+  function acKit(hl) { // the kit drawing, with the drum(s) to hit highlighted
+    const lanesOf = new Set(hl.map(id => acSound(id)?.lane));
+    let svg = `<svg class="kgkit" viewBox="0 0 700 380" role="img" aria-label="Kit">`;
+    for (const l of lanes) {
+      const P = KIT_POS[l.id]; if (!P) continue; const [x, y, r, kind] = P, on = lanesOf.has(l.id);
+      const fill = on ? hexA(l.color, 0.55) : 'rgba(255,255,255,.03)', stroke = on ? l.color : 'rgba(255,255,255,.15)';
+      if (kind === 'cym') svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+      else if (kind === 'kick') svg += `<rect x="${x - r}" y="${y - 26}" width="${r * 2}" height="70" rx="16" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+      else if (kind === 'pedal') svg += `<rect x="${x - 18}" y="${y - 28}" width="36" height="56" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+      else svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`;
+      if (on) svg += `<text x="${x}" y="${kind === 'kick' ? y + 66 : kind === 'pedal' ? y + 44 : y + r + 16}" fill="#eceef2" font-size="13" font-weight="700" text-anchor="middle" font-family="Inter, sans-serif">${l.name}</text>`;
+    }
+    return svg + '</svg>';
+  }
+  const acDots = (n, of) => `<span class="acdots">${Array.from({ length: of }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+  function acRender() {
+    const B = $('acBody'), st = acw.step;
+    const singlesDone = Object.keys(acw.rec.singles).length;
+    $('acBack').hidden = st === 'intro'; $('acSkip').hidden = !(st === 'sound' || st === 'combo'); $('acRedo').hidden = !(st === 'sound' || st === 'combo') || !acw.cur.length;
+    $('acNext').hidden = st === 'sound' || st === 'quiet' || st === 'combo';
+    ACX.listen = null; ACX.onFrame = null;
+    if (st === 'intro') {
+      B.innerHTML = `<div class="kgkicker">Acoustic kit (beta) · setup</div><h2>Teach the app your drums</h2>
+        <p>The app listens with a microphone and learns what each of your drums sounds like. You’ll hit each drum 6 times, then (optional) a few pairs together. About 3 minutes.</p>
+        <ul class="hint actips"><li><b>Wear headphones</b> for the click and music, so the mic only hears your drums.</li><li>Put the laptop (or mic) 1–2 m in front of the kit, pointing at it, and keep it in the same place when you play.</li><li>A quiet room helps. If you move the mic or change the kit, run this again.</li></ul>
+        <label class="mfield"><span>Microphone</span><select id="acDev2"></select></label>
+        <div class="kgstat"><span class="hint" id="acMicInfo">${ACX.running ? '✓ Listening: ' + esc(ACX.devName) : 'Press Start; the browser will ask to use the microphone.'}</span></div>`;
+      const s2 = $('acDev2'); s2.innerHTML = $('acDev').innerHTML; s2.value = $('acDev').value;
+      s2.onchange = async () => { ACX.devId = s2.value; $('acDev').value = s2.value; acSave(); acStop(); await acStart(); acRender(); };
+      btnText('acNext', 'Start');
+      $('acNext').onclick = async () => { if (await acStart()) { await acFillDevices(); acw.step = 'quiet'; acRender(); } else $('acMicInfo').textContent = $('acInfo').textContent; };
+    } else if (st === 'quiet') {
+      B.innerHTML = `<div class="kgkicker">Step 1 · Room noise</div><h2>Stay quiet for 3 seconds…</h2><p>Measuring how loud the room is, so the app can tell your hits from background noise.</p><div class="acmeter"><i id="acLvl"></i></div>`;
+      acw.frames = [];
+      ACX.onFrame = (fr) => { acw.frames.push(fr); const el = $('acLvl'); if (el) el.style.width = Math.max(0, Math.min(100, (fr.db + 90) * 1.25)) + '%'; };
+      clearTimeout(acw.tm);
+      acw.tm = setTimeout(() => {
+        const dbs = acw.frames.map(x => x.db).sort((a, b) => a - b), nf = dbs.length ? dbs[Math.floor(dbs.length * 0.9)] : -75;
+        acw.rec.noiseDb = nf; if (ACX.det) { ACX.det.noiseDb = nf; const eps = new Float32Array(AC_NB); acw.frames.forEach(x => x.E.forEach((v, b) => eps[b] += v / acw.frames.length)); for (let b = 0; b < AC_NB; b++) ACX.det.eps[b] = Math.max(1e-9, eps[b] * 2); acw.rec.eps = [...ACX.det.eps]; }
+        acw.step = 'sound'; acw.i = 0; acw.cur = []; acRender();
+      }, 3000);
+    } else if (st === 'sound') {
+      const s = AC_SOUNDS[acw.i];
+      B.innerHTML = `<div class="kgkicker">Step 2 · Drum ${acw.i + 1} of ${AC_SOUNDS.length}</div><h2>Hit the ${esc(s.name.toLowerCase())} ${AC_N} times</h2>
+        <p>${esc(s.tip)} Mix it up: <b>3 soft, 3 hard</b>. Leave about a second between hits.</p>${acKit([s.id])}
+        <div class="kgstat">${acDots(acw.cur.length, AC_N)}<span class="hint" id="acLast">${acw.cur.length ? `Last hit: ${Math.round(acw.cur[acw.cur.length - 1].db - acw.rec.noiseDb)} dB above the room` : 'Listening…'}</span></div>`;
+      btnText('acSkip', 'I don’t have this one');
+      ACX.listen = (ev) => {
+        acw.cur.push({ f: ev.f, db: ev.db }); acRender();
+        if (acw.cur.length >= AC_N) { ACX.listen = null; acw.rec.singles[s.id] = acw.cur; setTimeout(() => acAdvance(), 700); }
+      };
+    } else if (st === 'combo') {
+      const c = AC_COMBOS.filter(x => x.every(id => acw.rec.singles[id]))[acw.i];
+      if (!c) { acw.step = 'check'; return acRender(); }
+      const total = AC_COMBOS.filter(x => x.every(id => acw.rec.singles[id])).length;
+      B.innerHTML = `<div class="kgkicker">Step 3 (optional) · Pair ${acw.i + 1} of ${total}</div><h2>Hit ${esc(acSound(c[0]).name.toLowerCase())} + ${esc(acSound(c[1]).name.toLowerCase())} together, ${AC_NC} times</h2>
+        <p>Exactly together, like on beat 1 of a groove. These teach the app how your drums sound when they overlap.</p>${acKit(c)}
+        <div class="kgstat">${acDots(acw.cur.length, AC_NC)}<span class="hint">${acw.cur.length ? 'Got it. Keep going.' : 'Listening…'}</span></div>
+        <div class="btns"><button id="acSkipAll" class="ghost small">Skip all pairs</button></div>`;
+      btnText('acSkip', 'Skip this pair');
+      $('acSkipAll').onclick = () => { acw.step = 'check'; acRender(); };
+      ACX.listen = (ev) => {
+        acw.cur.push({ l: c.slice(), f: ev.f, db: ev.db }); acRender();
+        if (acw.cur.length >= AC_NC) { ACX.listen = null; acw.rec.combos.push(...acw.cur); setTimeout(() => acAdvance(), 700); }
+      };
+    } else if (st === 'check') {
+      if (!acw.model) acw.model = acTrain(acw.rec);
+      const M = acw.model;
+      if (!M) { B.innerHTML = '<h2>Not enough drums recorded</h2><p>Record at least two drums to finish.</p>'; btnText('acNext', 'Start over'); $('acNext').onclick = () => acWizard(acw.back); return; }
+      const rows = M.ids.map(id => { const ch = M.check.filter(c => c.l.length === 1 && c.l[0] === id), ok = ch.filter(c => sameSet(c.got, c.l)).length; const wrong = ch.filter(c => !sameSet(c.got, c.l)).map(c => c.got.map(x => acSound(x).name).join(' + ')); return `<div class="acrow"><span>${esc(acSound(id).name)}</span><b class="${ok === ch.length ? 'kgok' : ''}">${ok}/${ch.length}</b><em>${wrong.length ? 'heard as ' + esc([...new Set(wrong)].join(', ')) : ''}</em></div>`; }).join('');
+      const pc = M.check.filter(c => c.l.length > 1), pok = pc.filter(c => sameSet(c.got, c.l)).length;
+      const all = M.check.filter(c => sameSet(c.got, c.l)).length;
+      B.innerHTML = `<div class="kgkicker">Step 4 · Check</div><h2>${all / M.check.length >= 0.9 ? 'Your kit is ready 🎉' : 'Mostly there'}</h2>
+        <p>How well the app recognised your own hits (each one tested against the others): <b>${Math.round(all / M.check.length * 100)}%</b>.${all / M.check.length < 0.9 ? ' Mixed-up drums often sound alike from where the mic is: move it a bit closer, then redo those drums.' : ''}</p>
+        <div class="acrows">${rows}${pc.length ? `<div class="acrow"><span>Pairs together</span><b class="${pok === pc.length ? 'kgok' : ''}">${pok}/${pc.length}</b><em></em></div>` : ''}</div>
+        <div class="rsec"><h3>Try it: hit anything</h3><div id="acLive" class="aclive">Listening…</div></div>
+        <div class="btns"><label class="field"><span>Redo a drum</span><select id="acRedoSel"><option value="">Choose…</option>${M.ids.map(id => `<option value="${id}">${esc(acSound(id).name)}</option>`).join('')}</select></label></div>`;
+      $('acRedoSel').onchange = () => { const id = $('acRedoSel').value; if (!id) return; acw.redo = true; acw.model = null; acw.step = 'sound'; acw.i = AC_SOUNDS.findIndex(s => s.id === id); acw.cur = []; acRender(); };
+      acw.live = [];
+      ACX.listen = (ev) => {
+        const r = acDecide(M, ev.f); acw.live.unshift(r.ids.map(id => acSound(id).name).join(' + ')); acw.live.length = Math.min(acw.live.length, 8);
+        const el = $('acLive'); if (el) el.innerHTML = acw.live.map((x, i) => `<span class="${i ? '' : 'new'}">${esc(x)}</span>`).join('');
+      };
+      btnText('acNext', 'Finish');
+      $('acNext').onclick = () => { ACX.model = M; ACX.on = true; if (ACX.det) { ACX.det.noiseDb = M.noiseDb; if (acw.rec.eps) acw.rec.eps.forEach((v, b) => ACX.det.eps[b] = v); } M.eps = acw.rec.eps; acSave(); acStatus(); acw.model = null; acClose(); };
+    }
+  }
+  function acAdvance() {
+    if (acw.step === 'sound') {
+      if (acw.redo) { acw.redo = false; acw.step = 'check'; acw.model = null; return acRender(); }
+      acw.i++; acw.cur = [];
+      if (acw.i >= AC_SOUNDS.length) { acw.step = 'combo'; acw.i = 0; }
+    } else if (acw.step === 'combo') { acw.i++; acw.cur = []; }
+    acRender();
+  }
+  $('acSkip').onclick = () => { if (acw.step === 'sound') { delete acw.rec.singles[AC_SOUNDS[acw.i].id]; } acAdvance(); };
+  $('acRedo').onclick = () => { acw.cur = []; acRender(); };
+  $('acBack').onclick = () => {
+    if (acw.step === 'sound' && acw.i > 0) { acw.i--; acw.cur = []; }
+    else if (acw.step === 'combo' && acw.i > 0) { acw.i--; acw.cur = []; acw.rec.combos = acw.rec.combos.filter(c => !sameSet(c.l, AC_COMBOS.filter(x => x.every(id => acw.rec.singles[id]))[acw.i])); }
+    else if (acw.step === 'check') { acw.model = null; acw.step = 'combo'; acw.i = 0; acw.rec.combos = []; acw.cur = []; }
+    else { acw.step = 'intro'; }
+    acRender();
+  };
+  $('acCancel').onclick = () => acClose();
+  window.addEventListener('keydown', (e) => { if (!$('acModal').hidden && e.key === 'Escape') { acClose(); e.stopPropagation(); } }, true);
+  // ---- Settings › Kit setup › Acoustic kit ----
+  $('acOn').onchange = async () => {
+    ACX.on = $('acOn').checked; acSave();
+    if (ACX.on) { if (!ACX.model) { $('sModal').hidden = true; acWizard(); } else await acStart(); }
+    else acStop();
+    acStatus();
+  };
+  $('acCal').onclick = () => { $('sModal').hidden = true; acWizard(); };
+  $('acDev').onchange = async () => { ACX.devId = $('acDev').value; acSave(); if (ACX.running) { acStop(); await acStart(); } };
+  $('acSetBtn') && ($('acSetBtn').onclick = () => openSettings('kit'));
+  // start listening on the first click or key press (browsers need a gesture before audio can run)
+  if (ACX.on && ACX.model) {
+    const go = () => { window.removeEventListener('pointerdown', go, true); window.removeEventListener('keydown', go, true); acStart(); };
+    window.addEventListener('pointerdown', go, true); window.addEventListener('keydown', go, true);
+  }
+  acStatus(); if (navigator.mediaDevices) acFillDevices();
+  // test hook: feed audio straight into the detector (no microphone)
+  window.__acoustic = { ACX, makeDetector, acTrain, acDecide, AC_SOUNDS, AC_COMBOS, audioNow: () => now(), sr: () => { ensureAudio(); return ac.sampleRate; }, feed(data, t0) { if (!ACX.det) { ensureAudio(); ACX.det = makeDetector(ac.sampleRate, { onHit: acOnHit, onFrame: (fr) => { if (ACX.onFrame) ACX.onFrame(fr); } }); ACX.running = true; ACX.devName = 'Test input'; micGrace = 0.09; } ACX.det.push(data, t0); }, acw, acRender, acWizard };
+
   const kg = { step: 0, active: false, found: {}, vel: {}, unk: null, resume: false };
   // top-down drawing of a kit (the drummer sits at the bottom)
   const KIT_POS = { crash: [150, 70, 58, 'cym'], ride: [550, 80, 66, 'cym'], hh: [92, 175, 46, 'cym'], tom1: [285, 120, 42, 'drum'], tom2: [415, 120, 44, 'drum'],
@@ -4894,8 +5275,10 @@ function midiToSong(mid, name, opts = {}) {
         <ol class="hint" style="color:#c9cdd6;font-size:13px;line-height:1.6;padding-left:20px;margin:4px 0">
           <li>Plug the USB cable from your drum module into this computer.</li><li>Turn the module on.</li><li>Press <b>Connect my kit</b> and allow MIDI if the browser asks.</li></ol>
         <div class="kgstat"><button id="kgConn" class="${on ? '' : 'primary'}"><svg class="ic"><use href="#i-plug"/></svg>${on ? 'Connected' : 'Connect my kit'}</button><span id="kgConnInfo" class="${on ? 'kgok' : 'hint'}">${on ? '✓ ' + midiStatus.textContent : midiStatus.textContent}</span></div>
+        <div class="kgstat"><button id="kgAcoustic" class="ghost"><svg class="ic"><use href="#i-target"/></svg>I play an acoustic kit (microphone)</button><span class="hint">Beta: the app listens to your real drums.</span></div>
         <p class="hint">No kit plugged in yet? Press Next anyway: you can play with the keyboard (the key for each drum shows under its lane) and connect later from the top bar.</p>`;
       $('kgConn').onclick = async () => { await $('connectBtn').onclick(); setTimeout(kgRender, 200); };
+      $('kgAcoustic').onclick = () => { kg.active = false; $('kgModal').hidden = true; acWizard('guide'); };
       btnText('kgNext', 'Next');
     } else if (kg.step === 1) {
       const n = lanes.length, got = lanes.filter(l => kg.found[l.id]).length;
