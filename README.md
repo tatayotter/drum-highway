@@ -24,12 +24,15 @@ Everything you load (MIDI library, drum samples, backing audio, settings) stays 
 
 ## Course
 
-Graded lessons from Debut to Grade 5, about 140 lessons. Along with rudiments, grooves, fills, toms, timing and triplets, the course covers:
+Graded lessons from Debut to Grade 8, about 175 lessons. Along with rudiments, grooves, fills, toms, timing and triplets, the course covers:
 
-- Flams and drags.
-- 3/4, 6/8, 5/4 and 7/8.
-- Jazz, samba, songo, Afro-Cuban 6/8, hip-hop and metal.
-- Hi-hat foot and double-kick lessons. Turn on the hi-hat pedal lane in Kit setup to get the foot scored.
+- Flams and drags, plus longer rolls.
+- 3/4, 6/8, 5/4, 7/8, 9/8 and 11/8.
+- Polyrhythms and groupings: 3 over 4, 3 over 2, groups of 5 and 7.
+- Jazz, Latin (samba, songo, Mozambique, clave, cascara), New Orleans, gospel, hip-hop and drum & bass.
+- Hi-hat foot lessons. Turn on the hi-hat pedal lane in Kit setup to get the foot scored.
+
+Everything works with a single bass drum pedal. There are no double-pedal exercises.
 
 **Lessons.** Each lesson is split into steps: hands only, feet only, together at a slower tempo, then full tempo. Lessons that use only one part of the body step up the tempo instead. Every lesson also has:
 
@@ -38,13 +41,15 @@ Graded lessons from Debut to Grade 5, about 140 lessons. Along with rudiments, g
 - **Play it.**
 - A tip written for that lesson.
 
+**Backing music.** Lessons and drills play over backing music: bass and keys in a style that fits the groove (rock, funk, shuffle, jazz, Latin and others). You can turn it off. Timing drills with a gap in the click have no music, so you have to keep time on your own.
+
 **Stars.** Lessons earn up to three stars:
 
 - ★ pass at a slower practice tempo
 - ★★ pass at full tempo
 - ★★★ 95% at full tempo
 
-**Grade songs.** The original songs are the grade pieces.
+**Grade songs.** The 15 original songs are the grade pieces.
 
 **Exams.** Each grade's exam has five parts:
 

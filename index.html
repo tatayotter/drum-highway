@@ -380,7 +380,7 @@
         <div class="plan" id="cPlan" hidden></div>
         <div class="lesson" id="cCard"></div>
         <div class="btns"><button id="cNext" class="primary" hidden><span class="t">Next lesson</span></button></div>
-        <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the drum part while I play</label></div></div>
+        <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the drum part while I play</label></div><div class="row"><label class="sw"><input id="musicCourse" type="checkbox" checked> Backing music (bass and keys)</label></div></div>
         <h2>Your course</h2>
         <div class="grades" id="cGrades"></div>
         <div class="rows"><div class="row"><label class="sw"><input id="cUnlock" type="checkbox"> Unlock every grade (for experienced players)</label></div></div>
@@ -388,7 +388,7 @@
         <p class="hint">Pass each lesson at full tempo to unlock the next. Each lesson breaks into steps (hands, feet, then slower to full tempo). Each grade ends with an exam (three set pieces, a sight-reading piece and an improvised fill) marked Pass, Merit or Distinction, and passing it opens the next grade. Progress is saved in this browser.</p>
       </div>
       <div id="drillSide" hidden>
-        <div class="rows"><div class="row"><label class="sw"><input id="hearDrill" type="checkbox"> Hear the drill (demo)</label></div></div>
+        <div class="rows"><div class="row"><label class="sw"><input id="hearDrill" type="checkbox"> Hear the drill (demo)</label></div><div class="row"><label class="sw"><input id="musicDrill" type="checkbox" checked> Backing music (bass and keys)</label></div></div>
         <h2>Speed trainer</h2>
         <div class="rows">
           <div class="row"><label class="sw"><input id="trainOn" type="checkbox"> Speed up after clean rounds</label></div>
@@ -931,11 +931,10 @@ function midiToSong(mid, name, opts = {}) {
     D('Rudiments', 3, [60, 100], 'Flamacue', 'fR L> R L fR: an accent on the second note, then a flam on the next beat.', stickSeq('^R L> R L ^R - - - ^L R> L R ^L - - -'), { tip: 'The accent is on the 2nd note, not the flam. Keep the flams soft.' }),
     D('Rudiments', 3, [60, 110], 'Swiss army triplet', 'Triplets: fR R L. The flam and the next note are the same hand.', stickSeq('^R> R L ^R> R L', 'snare', 12), { tip: 'Let the right stick bounce off the flam into the next note.' }),
     D('Sticking on the kit', 2, [60, 100], 'Flam fill (bar 4)', 'Three bars of groove, then 8th-note flams moving snare, tom 1, tom 2, floor tom.', fill4(v('^R - ^L - ^R - ^L - ^R - ^L - ^R - ^L -', 'beatAround')), { tip: 'Both sticks move to the new drum together on each flam.' }),
-    // ===== Hi-hat foot & double kick =====
+    // ===== Hi-hat foot =====
     D('Kick & independence', 1, [60, 110], 'Hi-hat foot on 2 & 4', 'Ride on every beat, kick on 1 and 3, and close the hi-hat with your foot on 2 and 4.', () => grid({ ride: 'x---x---x---x---', kick: 'x-------x-------', hhp: '----x-------x---' }), { tip: 'Heel down, toes press the pedal. A sharp "chick" sound, not a slow close.' }),
     D('Kick & independence', 2, [60, 110], 'Hi-hat foot quarters', 'Rock groove on the ride with the hi-hat foot on every beat, together with the kick and snare.', () => grid({ ride: HH8, snare: BB, kick: 'x-------x-x-----', hhp: 'x---x---x---x---' }), { tip: 'Both feet together on 1 and 3: keep them exactly in time with each other.' }),
     D('Kick & independence', 3, [60, 100], 'Hi-hat foot on the "&"', 'Ride groove with the hi-hat foot only on the "&" of each beat, between the kicks.', () => grid({ ride: HH8, snare: BB, kick: 'x-------x-------', hhp: '--x---x---x---x-' }), { tip: 'Slowly at first: the foot plays where your hands don’t expect it.' }),
-    D('Kick & independence', 3, [50, 100], 'Double kick 16ths', 'Steady 16th notes on the kick under a quarter-note ride and backbeat. Use a double pedal, alternating feet.', () => grid({ ride: 'x---x---x---x---', snare: BB, kick: 'xxxxxxxxxxxxxxxx' }), { tip: 'No double pedal yet? Play it at half tempo with one foot, or swap to 8th notes.' }),
     // ===== More grooves =====
     D('Grooves', 2, [70, 95], 'Hip-hop groove', 'Laid-back 8th hats, a syncopated kick and a ghost note before beat 3.', () => grid({ hh: HH8, snare: '----x--g----x---', kick: 'x------x-xx-----' }), { tip: 'Sit just behind the click. Hip-hop feels relaxed, never rushed.' }),
     D('Grooves', 3, [80, 140], 'Metal gallop', 'Ride on the beat, backbeat snare, and the "gallop" kick: one 8th, two 16ths.', () => grid({ ride: 'x---x---x---x---', snare: BB, kick: 'x-xxx-xxx-xxx-xx' }), { tip: 'Keep the gallop even. The two 16ths shouldn’t crowd the next beat.' }),
@@ -956,6 +955,30 @@ function midiToSong(mid, name, opts = {}) {
     D('Jazz & Latin', 3, [70, 110], 'Samba', 'Snare 16ths with an accent on the last 16th of each beat, the surdo kick pattern and the hi-hat foot on the "&".', () => grid({ snare: 'gggXgggXgggXgggX', kick: 'x--xx--xx--xx--x', hhp: '--x---x---x---x-' }), { tip: 'Play the feet alone first until they feel like a bass line.' }),
     D('Jazz & Latin', 3, [45, 75], 'Afro-Cuban 6/8 bell', 'The 6/8 bell pattern on the ride, over two bars, with the kick on 1 and 4.', (bar) => gridM({ ride: bar % 2 === 0 ? 'x-x-xx' : '-x-x-x', kick: 'x--x--' }, 2), { meter: M68, tip: 'Sing the bell pattern first. It repeats every two bars.' }),
     D('Jazz & Latin', 3, [80, 120], 'Songo (simplified)', 'A Cuban groove: hi-hat on the beat, the kick on the "&" of 2 and 4, and a snare pattern with ghost notes.', () => grid({ hh: 'x---x---x---x---', kick: '------x-------x-', snare: 'g--X--g-g--X--g-' }), { tip: 'There’s no kick on 1. Let the hi-hat hold the beat.' }),
+    // ===== Grades 6-8 =====
+    D('Rudiments', 3, [70, 130], 'Eleven-stroke roll', 'Five doubles into an accent: R R L L R R L L R R L>.', stickSeq('R R L L R R L L R R L> - - - - -'), { tip: 'The doubles stay even right up to the accent. No gap before it.' }),
+    D('Rudiments', 3, [70, 130], 'Thirteen-stroke roll', 'Six doubles into an accent: R R L L R R L L R R L L R>.', stickSeq('R R L L R R L L R R L L R> - - -'), { tip: 'Think of it as one long sound that ends in the accent.' }),
+    D('Rudiments', 3, [60, 110], 'Flam paradiddle', 'A paradiddle with a flam on the first note of each group: fR L R R  fL R L L.', stickSeq('^R> L R R ^L> R L L'), { tip: 'The double comes right after the flam hand switches. Keep the grace notes low.' }),
+    D('Rudiments', 3, [60, 110], 'Inverted flam tap', 'fR L fL R: the tap is played by the hand that just played the grace note.', stickSeq('^R> L ^L> R'), { tip: 'Each hand plays grace note, then tap, then the main stroke. Go slowly at first.' }),
+    D('Rudiments', 3, [60, 110], 'Pataflafla', 'fR L R fL: a flam on the first and last note of each group.', stickSeq('^R L R ^L ^R L R ^L'), { tip: 'Two flams in a row (end of one group, start of the next): both sticks reset fast.' }),
+    D('Rudiments', 3, [60, 110], 'Single dragadiddle', 'A paradiddle with a drag on the first note: llR L R R  rrL R L L.', stickSeq('~R> L R R ~L> R L L'), { tip: 'The drag is a soft double bounce leading into the accent.' }),
+    D('Rudiments', 3, [60, 110], 'Lesson 25', 'Drag, tap, accent: llR L R>. Then lead with the other hand.', stickSeq('~R L R> - ~L R L> -'), { tip: 'A classic drum corps rudiment. The accent lands on the "&".' }),
+    D('Grooves', 3, [80, 110], 'Second line (New Orleans)', 'A New Orleans street beat: busy snare with accents and ghost notes, and a kick that answers it.', () => grid({ snare: 'X-gX-g-gX-gX-g-g', kick: 'x-----x-x-----x-', hh: '----x-------x---' }), { tip: 'Loose and bouncy. Lean into the accents like a marching band.' }),
+    D('Grooves', 3, [70, 110], 'Gospel chops', 'Linear 16ths: right hand, left hand, two kicks, moving around the kit.', stickSeq('R>@sn L@sn K K R>@t1 L@t1 K K R>@t2 L@t2 K K R>@t3 L@t3 K K'), { tip: 'R L K K keeps going all bar. The accents move the sound around the kit.' }),
+    D('Grooves', 3, [150, 175], 'Drum & bass', 'Fast break-beat: kick on 1 and the "&" of 3, snare on 2 and 4 with ghost notes.', () => grid({ hh: HH8, snare: '----X--g-g--X---', kick: 'x---------x-----' }), { tip: 'At this speed the hi-hat is light. Let the kick and snare drive it.' }),
+    D('Grooves', 3, [120, 190], 'Blast beat', 'Ride and kick on every 8th, snare on the offbeats. A metal stamina test.', () => grid({ ride: HH8, kick: HH8, snare: '--x---x---x---x-' }), { tip: 'Start slow and stay relaxed. Tension is what makes blast beats fall apart.' }),
+    D('Polyrhythm & groupings', 3, [60, 110], 'Groups of 5 (16ths)', 'R L R L K over and over: a 5-note group that starts somewhere new every beat. Hi-hat foot on every beat.', (bar) => stickSeq('R> L R L K')(bar).concat(grid({ hhp: 'x---x---x---x---' })), { tip: 'Count the beat with your foot, and let the 5s roll over it. They line up again every 5 beats.' }),
+    D('Polyrhythm & groupings', 3, [60, 110], 'Groups of 7 (16ths)', 'R L R L R L K: a 7-note group across the bar, with the hi-hat foot on every beat.', (bar) => stickSeq('R> L R L R L K')(bar).concat(grid({ hhp: 'x---x---x---x---' })), { tip: 'Accent the first note of each group so you can hear where it starts.' }),
+    D('Polyrhythm & groupings', 3, [60, 100], '3 over 4 on the ride', 'Dotted 8ths on the ride (3 notes for every 4 beats... it lines up every 3 bars) over a normal kick and snare.', (bar) => { const out = grid({ kick: 'x-------x-------', snare: BB }); for (let k = 0; k < 16; k++) if ((bar * 16 + k) % 3 === 0) out.push([k, 'ride', { acc: (bar * 16 + k) % 48 === 0 }]); return out; }, { tip: 'Learn the ride alone with the click first: it should feel like its own slow pulse.' }),
+    D('Polyrhythm & groupings', 3, [60, 100], '3 over 2 (quarter-note triplets)', 'Quarter-note triplets on the ride over a quarter-note kick: 3 against 2.', () => grid({ ride: 'x-x-x-x-x-x-', kick: 'x--x--x--x--', snare: '---x-----x--' }), { tip: 'Say "1-trip-let" and play the ride on "1" and "let", then "trip".' }),
+    D('Jazz & Latin', 3, [100, 200], 'Jazz: feathering & comping', 'Ride pattern, hi-hat foot on 2 and 4, a soft kick on every beat, and snare comping that changes every bar.', (bar) => grid({ ride: 'x--x-xx--x-x', hhp: '---x-----x--', kick: 'g--g--g--g--', snare: ['-----X------', '--X-----X---', '---------X-X', 'X--------g--'][bar % 4] }), { tip: 'Feathering means the kick is felt more than heard. Keep it very soft.' }),
+    D('Jazz & Latin', 3, [90, 130], 'Son clave groove', 'The 3-2 son clave on the snare (cross-stick sound) over two bars, with ride 8ths and a tumbao kick.', (bar) => grid({ ride: HH8, snare: bar % 2 === 0 ? 'x--x---x--------' : '----x---x-------', kick: '------x-------x-' }), { tip: 'Sing the clave ("1 . . 2 . . 3 . | . . 1 . 2 . . .") before you play it.' }),
+    D('Jazz & Latin', 3, [90, 130], 'Mozambique', 'A Cuban groove: bell pattern on the ride, a busy snare with accents and the kick on the "&" of 2 and 4.', () => grid({ ride: 'x-x-x-xx-xx-x-x-', snare: 'g--Xg--gg--Xg--g', kick: '------x-------x-' }), { tip: 'The ride pattern is the hardest part. Get it solid, then add the rest.' }),
+    D('Jazz & Latin', 3, [90, 130], 'Cascara (salsa)', 'The cascara pattern on the floor tom shell (here the floor tom) with a kick on the "&" of 2 and 4.', (bar) => grid({ tom3: bar % 2 === 0 ? 'x-x-xx-xx-xx-x-x' : 'x-xx-x-xx-x-xx-x', kick: '------x-------x-', hhp: '----x-------x---' }), { tip: 'Two different bars: the pattern lines up with the clave.' }),
+    D('Triplets & shuffles', 3, [60, 100], '12/8 Afro bell', 'The 12/8 bell pattern on the ride over triplets, kick on 1 and 3, a snare cross-stick on 4.', () => grid({ ride: 'x-x-xx-x-x-x', kick: 'x-----x-----', snare: '---------x--' }), { tip: 'The bell is a 7-note pattern over 12 triplets. Sing it first.' }),
+    D('Time signatures', 3, [90, 150], '9/8 groove (2 + 2 + 2 + 3)', 'Nine 8th notes grouped 2 + 2 + 2 + 3, like a fast dance rhythm.', () => gridM({ hh: 'xxxxxxxxx', kick: 'x---x-x--', snare: '--x----x-' }, 2), { meter: { ts: [9, 8], steps: 18, clicks: [0, 4, 8, 12], beat: 4, compound: true }, tip: 'Count "1 2, 1 2, 1 2, 1 2 3". The long group comes last.' }),
+    D('Time signatures', 3, [60, 90], '11/8 groove (3 + 3 + 3 + 2)', 'Eleven 8th notes: three groups of three and one of two.', () => gridM({ hh: 'xxxxxxxxxxx', kick: 'x-----x----', snare: '---x-----x-' }, 2), { meter: { ts: [11, 8], steps: 22, clicks: [0, 6, 12, 18], beat: 6, compound: true }, tip: 'Feel three slow beats and a short one. The tempo is the dotted quarter.' }),
+    D('Time signatures', 3, [100, 170], '7/8 groove (3 + 2 + 2)', 'Seven 8th notes grouped 3 + 2 + 2: the long group comes first this time.', () => gridM({ hh: 'xxxxxxx', kick: 'x----x-', snare: '---x--x' }, 2), { meter: { ts: [7, 8], steps: 14, clicks: [0, 6, 10], beat: 4, compound: true }, tip: 'Say "1 2 3, 1 2, 1 2".' }),
   ];
   const drillCats = [...new Set(DRILLS.map(d => d.cat))];
   const usesPedal = (d) => [0, 1].some(b => d.build(b).some(x => x[1] === 'hhp'));
@@ -1047,18 +1070,22 @@ function midiToSong(mid, name, opts = {}) {
     [[0], [0, 2], [0, 1, 2, 3], [0, 1, 2], [0, 2, 3], [0, 3], [1, 2, 3]],
     [[0, 2], [0, 1, 2, 3], [0, 1, 2], [0, 2, 3], [0, 3], [1, 2, 3], [1, 3], [0, 1, 3]],
     [[0, 1, 2, 3], [0, 1, 2], [0, 2, 3], [0, 3], [1, 2, 3], [1, 3], [0, 1, 3], [3], [1]],
+    [[0, 1, 2, 3], [0, 1, 2], [0, 2, 3], [0, 3], [1, 2, 3], [1, 3], [0, 1, 3], [3], [1], [2, 3]],
+    [[0, 1, 2], [0, 2, 3], [0, 3], [1, 2, 3], [1, 3], [0, 1, 3], [3], [1], [2, 3], [1, 2]],
+    [[0, 2, 3], [0, 3], [1, 2, 3], [1, 3], [0, 1, 3], [3], [1], [2, 3], [1, 2], [0, 1, 2, 3]],
   ];
   function sightDrill(gi) {
     const d = { cat: 'Sight-reading', lvl: Math.min(3, 1 + Math.floor(gi / 2)), bpm: [60, 100], name: 'Sight-reading', sight: true, seed: 1,
       desc: 'A new piece every time you play it. Read it from the sheet music: no Watch first, no rehearsal.' };
     d.build = (bar) => {
-      const r = rng(d.seed * 977 + bar * 131 + 7), cells = SIGHT_CELLS[Math.min(gi, 5)], out = [];
+      const r = rng(d.seed * 977 + bar * 131 + 7), cells = SIGHT_CELLS[Math.min(gi, SIGHT_CELLS.length - 1)], out = [];
       if (gi >= 1) for (let i = 0; i < 16; i += 2) out.push([i, 'hh', {}]);      // steady hi-hat from Grade 1
       for (let beat = 0; beat < 4; beat++) {
         const cell = cells[Math.floor(r() * cells.length)];
+        const toms = gi >= 6 && bar % 4 === 3 && beat >= 2; // from Grade 6 the 4th bar ends with a short tom fill
         // Debut reads one line (snare); later grades split the rhythm between snare and kick
         for (const k of cell) {
-          const lane = gi === 0 ? 'snare' : (beat === 0 && k === 0) || (beat === 2 && k === 0 && r() < 0.6) ? 'kick' : r() < (gi >= 3 ? 0.35 : 0.2) ? 'kick' : 'snare';
+          const lane = toms ? ['tom1', 'tom2', 'tom3'][(beat * 4 + k) % 3] : gi === 0 ? 'snare' : (beat === 0 && k === 0) || (beat === 2 && k === 0 && r() < 0.6) ? 'kick' : r() < (gi >= 3 ? 0.35 : 0.2) ? 'kick' : 'snare';
           const m = { stick: gi === 0 ? (k % 2 ? 'L' : 'R') : undefined };
           if (gi >= 2 && lane === 'snare' && k !== 0 && r() < (gi >= 4 ? 0.35 : 0.2)) m.ghost = true;
           if (gi >= 2 && lane === 'snare' && k === 0 && (beat === 1 || beat === 3)) m.acc = true;
@@ -1078,15 +1105,18 @@ function midiToSong(mid, name, opts = {}) {
     { hh: HH8, snare: '----X--g-g--X--g', kick: 'x-------x-x-----' },
     { hh: HH8, snare: '----X--g-g--X--g', kick: 'x--x--x---x--x--' },
     { ride: HH8, snare: '----X--g-g--X--g', kick: 'x-----x-x-----x-' },
+    { hh: 'xxxxxxxxxxxxxxxx', snare: '----X--g-g--X--g', kick: 'x--x--x---x--x--' },
+    { ride: 'x--x-xx--x-x', hhp: '---x-----x--', kick: 'g--g--g--g--' }, // jazz: trading fours
+    { hh: HH8, snare: '----X--g-g--X---', kick: 'x---------x-----' },
   ];
   function fillDrill(gi) {
-    const g = FILL_GROOVES[Math.min(gi, 5)], need = gi >= 2 ? 2 : 1;
-    return { cat: 'Improvised fill', lvl: Math.min(3, 1 + Math.floor(gi / 2)), bpm: [60, 110], name: 'Improvised fill', fillNeed: need,
+    const g = FILL_GROOVES[Math.min(gi, FILL_GROOVES.length - 1)], need = gi >= 2 ? 2 : 1;
+    return { cat: 'Improvised fill', lvl: Math.min(3, 1 + Math.floor(gi / 2)), bpm: [60, 110], name: 'Improvised fill', fillNeed: need, style: ['rock', 'rock', 'rock', 'funk', 'funk', 'funk', 'funk', 'jazz', 'hiphop'][gi],
       desc: `Groove for three bars, then the fourth bar is yours: play your own fill (at least 3 notes${need > 1 ? ' on 2 or more drums' : ''}), and land the crash and kick on the next 1.`,
       tip: 'Use what you learned in this grade. Simple and in time beats busy and late.',
       build: (bar) => bar % 4 === 3 ? [] : withFill(g, {})(bar) };
   }
-  const R = 'Rudiments', G = 'Grooves', F = 'Fills', K = 'Kick & independence', TM = 'Timing', TO = 'Toms', SK = 'Sticking on the kit', TS = 'Triplets & shuffles', MT = 'Time signatures', JL = 'Jazz & Latin';
+  const R = 'Rudiments', G = 'Grooves', F = 'Fills', K = 'Kick & independence', TM = 'Timing', TO = 'Toms', SK = 'Sticking on the kit', TS = 'Triplets & shuffles', MT = 'Time signatures', JL = 'Jazz & Latin', PG = 'Polyrhythm & groupings';
   const COURSE_DEF = [
     { name: 'Debut', title: 'First steps', goal: 'Keep a steady pulse, play even 8th notes and your first rock beat.',
       lessons: [[TM, 'Quarter-note pulse (gap click)', 70], [R, 'Single strokes (8ths)', 70], [G, 'Basic rock (quarter hats)', 70], [G, '8th-note rock', 70],
@@ -1125,9 +1155,27 @@ function midiToSong(mid, name, opts = {}) {
       lessons: [[R, 'Seven-stroke roll', 80], [R, 'Single-double mix', 90], [R, 'Accents in 3s', 80], [K, 'Kick 16th bursts', 80], [K, 'Ostinato: ride + kick', 75],
         [G, 'Bossa nova (straight)', 110], [TM, '"e" and "a" only', 80], [TM, 'Gap click 16ths with accents in 3s', 80], [TO, 'Sixes around the kit', 80],
         [TS, 'Bonham triplets', 90], [TS, 'Triplets around the kit', 80], [SK, 'Paradiddle-diddle fill (bar 4)', 90],
-        [R, 'Flamacue', 80], [R, 'Swiss army triplet', 90], [MT, '7/8 groove (2 + 2 + 3)', 110], [JL, 'Songo (simplified)', 100], [K, 'Double kick 16ths', 70]],
+        [R, 'Flamacue', 80], [R, 'Swiss army triplet', 90], [MT, '7/8 groove (2 + 2 + 3)', 110], [JL, 'Songo (simplified)', 100], [K, 'Kick doubles', 100]],
       songs: [9, 10, 11],
       exam: [[G, 'Funk 16ths', 105], [G, 'Linear groove', 100], [TS, 'Bonham triplets', 100], ['Sight-reading', 'Sight-reading', 0], ['Improvised fill', 'Improvised fill', 0]] },
+    { name: 'Grade 6', title: 'Styles & longer rolls', goal: 'Eleven-stroke rolls and flam rudiments, New Orleans and gospel grooves, 9/8 and groups of five.',
+      lessons: [[R, 'Eleven-stroke roll', 100], [R, 'Flam paradiddle', 90], [R, 'Inverted flam tap', 90], [G, 'Second line (New Orleans)', 95], [G, 'Gospel chops', 85],
+        [PG, 'Groups of 5 (16ths)', 85], [MT, '9/8 groove (2 + 2 + 2 + 3)', 120], [K, 'Kick on the "e" and "a"', 100], [JL, 'Son clave groove', 100], [TS, '12/8 Afro bell', 75],
+        [JL, 'Jazz comping', 150], [SK, 'Double paradiddle: R floor, L snare', 100]],
+      songs: [12],
+      exam: [[G, 'Second line (New Orleans)', 105], [R, 'Flam paradiddle', 105], [MT, '9/8 groove (2 + 2 + 2 + 3)', 140], ['Sight-reading', 'Sight-reading', 0], ['Improvised fill', 'Improvised fill', 0]] },
+    { name: 'Grade 7', title: 'Polyrhythm & jazz', goal: 'Thirteen-stroke rolls and drag rudiments, 3 over 4 and 3 over 2, jazz feathering, Mozambique, drum & bass and 11/8.',
+      lessons: [[R, 'Thirteen-stroke roll', 100], [R, 'Pataflafla', 90], [R, 'Single dragadiddle', 90], [PG, '3 over 4 on the ride', 85], [PG, '3 over 2 (quarter-note triplets)', 85],
+        [JL, 'Jazz: feathering & comping', 150], [JL, 'Mozambique', 105], [G, 'Drum & bass', 160], [MT, '11/8 groove (3 + 3 + 3 + 2)', 75], [PG, 'Groups of 7 (16ths)', 85],
+        [TS, 'Half-time shuffle (Purdie style)', 100], [K, 'Ostinato: ride + kick', 95]],
+      songs: [13],
+      exam: [[JL, 'Jazz: feathering & comping', 170], [PG, '3 over 4 on the ride', 95], [G, 'Drum & bass', 170], ['Sight-reading', 'Sight-reading', 0], ['Improvised fill', 'Improvised fill', 0]] },
+    { name: 'Grade 8', title: 'Mastery', goal: 'Everything at performance tempo: Lesson 25, blast beats, cascara, 7/8 in 3 + 2 + 2, and fast funk, linear and triplet grooves.',
+      lessons: [[R, 'Lesson 25', 110], [R, 'Single-double mix', 120], [G, 'Blast beat', 170], [JL, 'Cascara (salsa)', 115], [MT, '7/8 groove (3 + 2 + 2)', 150],
+        [G, 'Funk 16ths', 115], [G, 'Linear groove', 115], [TS, 'Bonham triplets', 120], [K, 'Kick 16th bursts', 100], [SK, 'Paradiddle-diddle around toms', 115],
+        [JL, 'Songo (simplified)', 120], [PG, 'Groups of 5 (16ths)', 105]],
+      songs: [14],
+      exam: [[G, 'Gospel chops', 105], [JL, 'Mozambique', 125], [MT, '7/8 groove (3 + 2 + 2)', 170], ['Sight-reading', 'Sight-reading', 0], ['Improvised fill', 'Improvised fill', 0]] },
   ];
   const LESSON_NEED = 0.85, EXAM_NEED = 0.8;
   const COURSE = COURSE_DEF.map((g, gi) => ({ ...g, gi, items: [
@@ -1139,8 +1187,8 @@ function midiToSong(mid, name, opts = {}) {
   ] }));
   // Sight-reading and improvised fill: tempo from the grade's exam pieces
   COURSE.forEach(g => g.items.forEach(L => {
-    if (L.cat === 'Sight-reading') { L.drill = sightDrill(g.gi); L.bpm = [70, 75, 80, 80, 85, 90][g.gi]; L.bars = 8; }
-    else if (L.cat === 'Improvised fill') { L.drill = fillDrill(g.gi); L.bpm = [80, 90, 90, 90, 95, 100][g.gi]; L.bars = 12; }
+    if (L.cat === 'Sight-reading') { L.drill = sightDrill(g.gi); L.bpm = [70, 75, 80, 80, 85, 90, 90, 95, 100][g.gi]; L.bars = 8; }
+    else if (L.cat === 'Improvised fill') { L.drill = fillDrill(g.gi); L.bpm = [80, 90, 90, 90, 95, 100, 100, 110, 115][g.gi]; L.bars = 12; }
   }));
   COURSE.forEach(g => g.items.forEach(L => { if (L.song !== undefined || L.drill) return; L.drill = DRILLS.find(d => d.cat === L.cat && d.name === L.name); if (!L.drill) console.warn('Course: missing drill', L.cat, L.name); }));
   // ---- Player profiles: each has its own course progress and placement ----
@@ -1181,6 +1229,7 @@ function midiToSong(mid, name, opts = {}) {
     'Jazz & Latin': ['The ride and the hi-hat foot carry the time. Snare and kick just add to it.', 'Learn the foot pattern first and keep it going while the hands play the rest.'],
     'Sight-reading': ['Look at the whole bar before it arrives. Find the kick notes first.', 'Keep going when you miss a note. In an exam the time matters more than every note.'],
     'Improvised fill': ['Count the groove bars so you know when the fill bar starts.', 'Land the crash and kick together on 1. That landing is what makes a fill sound good.'],
+    'Polyrhythm & groupings': ['Keep the beat in your foot (hi-hat or kick) and let the pattern cross over it.', 'Practise very slowly until the pattern stops pulling the beat with it.'],
     'Triplets & shuffles': ['Count "1-trip-let 2-trip-let". Every triplet note is evenly spaced.', 'In a shuffle the middle triplet is silent: "1 - let 2 - let".'],
     Song: ['Use Watch first to hear the whole song, then play along.', 'Too fast? Pick a slower practice tempo to earn your first star, then speed up.'],
   };
@@ -1371,6 +1420,9 @@ function midiToSong(mid, name, opts = {}) {
     [[G, 'One-drop (reggae)', 90], [R, 'Five-stroke roll', 80]],
     [[G, 'Ghost-note groove', 90], [R, 'Six-stroke roll', 90]],
     [[G, 'Funk 16ths', 100], [TS, 'Bonham triplets', 100]],
+    [[G, 'Second line (New Orleans)', 90], [R, 'Flam paradiddle', 90]],
+    [[JL, 'Jazz: feathering & comping', 140], [R, 'Thirteen-stroke roll', 90]],
+    [[G, 'Gospel chops', 90], [MT, '7/8 groove (3 + 2 + 2)', 140]],
   ];
   const PLACE_NEED = 0.8;
   const PLACE = PLACE_DEF.flatMap((pair, gi) => pair.map(([cat, name, bpm], i) => ({ id: `pl${gi}:${i}`, gi, n: i + 1, exam: false, place: true, cat, name, bpm, bars: 4, need: PLACE_NEED,
@@ -1801,15 +1853,74 @@ function midiToSong(mid, name, opts = {}) {
   }
 
   const drillBpm = () => Math.max(30, Math.min(260, +$('bpm').value || 80));
+  // ---------- Backing music under drills and lessons: bass + keys following a chord loop ----------
+  const MUSIC_KEY = 'drumHighway.music.v1';
+  const BACKING = {
+    pop:     { ch: ['C', 'Am', 'F', 'G'], bass: 'quarters', comp: 'halfs', inst: { bass: 33, comp: 0 } },
+    rock:    { ch: ['A', 'F#m', 'D', 'E'], bass: 'eighths', comp: 'powerHold', inst: { bass: 34, comp: 29 } },
+    funk:    { ch: ['Em7', 'A7'], bass: 'funk', comp: 'funk', inst: { bass: 36, comp: 7 } },
+    hiphop:  { ch: ['Am7', 'Dm7'], bass: 'push', comp: 'pad', inst: { bass: 38, comp: 4 } },
+    shuffle: { ch: ['A7', 'A7', 'D7', 'A7'], bass: 'boogie', comp: 'offbeat', inst: { bass: 33, comp: 0 }, swing: true },
+    jazz:    { ch: ['Dm7', 'G7', 'Cmaj7', 'A7'], bass: 'walk', comp: 'charleston', inst: { bass: 32, comp: 0 }, swing: true },
+    latin:   { ch: ['Dm7', 'G7', 'Cmaj7', 'Cmaj7'], bass: 'half5', comp: 'push', inst: { bass: 32, comp: 24 } },
+    reggae:  { ch: ['Am', 'D'], bass: 'half5', comp: 'offbeat', inst: { bass: 33, comp: 16 } },
+    metal:   { ch: ['E5', 'E5', 'C5', 'D5'], bass: 'eighths', comp: 'power8', inst: { bass: 34, comp: 30 } },
+    pad:     { ch: ['C', 'Am', 'F', 'G'], bass: 'whole', comp: 'pad', inst: { bass: 33, comp: 89 } },
+    meter:   { ch: ['Dm', 'Bb', 'C', 'Am'], inst: { bass: 33, comp: 0 } },
+  };
+  function drillStyle(d) {
+    if (!d || d.gap) return null; // gap-click timing drills: no music to lean on
+    if (d.style) return d.style;
+    const n = d.name, c = d.cat;
+    if (d.meter) return 'meter';
+    if (/jazz|swing|comping|feathering/i.test(n)) return 'jazz';
+    if (/samba|bossa|songo|mozambique|clave|cascara|afro/i.test(n)) return 'latin';
+    if (/reggae|one-drop/i.test(n)) return 'reggae';
+    if (/metal|blast|double.kick|punk|gallop/i.test(n)) return 'metal';
+    if (/hip-hop|drum & bass/i.test(n)) return 'hiphop';
+    if (/funk|ghost|linear|gospel|second line|paradiddle groove/i.test(n)) return 'funk';
+    if (c === 'Triplets & shuffles' || /shuffle|12\/8/i.test(n)) return 'shuffle';
+    if (/motown|disco|basic rock|quarter/i.test(n)) return 'pop';
+    if (['Grooves', 'Fills', 'Kick & independence', 'Improvised fill'].includes(c)) return 'rock';
+    return 'pad';
+  }
+  const musicOn = () => $(mode === 'course' ? 'musicCourse' : 'musicDrill').checked;
+  function drillBacking(style, meter, b, t0, s16) {
+    const B = BACKING[style], out = [];
+    const c = chordOf(B.ch[b % B.ch.length]), root = atOrAbove(c.pc, 28);
+    const voic = c.iv.map(iv => atOrAbove((c.pc + iv) % 12, 55)).sort((x, y) => x - y);
+    const pr = atOrAbove(c.pc, 40), power = [pr, pr + 7, pr + 12];
+    const put = (role, step, note, vel, len) => out.push({ t: t0 + step * s16, dur: len * s16, note, vel, ch: role === 'bass' ? 1 : 2, program: B.inst[role], gain: VOL[role] / 127 * 0.9, pan: role === 'comp' ? -0.2 : 0 });
+    if (meter) { // bass on each click (root, then the 5th), keys hold the chord
+      meter.clicks.forEach((ck, j) => put('bass', ck, root + (j % 2 ? 7 : 0), 92, (meter.clicks[j + 1] ?? meter.steps) - ck));
+      voic.forEach(n => put('comp', 0, n, 66, meter.steps));
+      return out;
+    }
+    const sw = (st) => { if (!B.swing) return st; const q = Math.floor(st / 4), f = st - q * 4; return q * 4 + (f === 2 ? 8 / 3 : f === 3 ? 10 / 3 : f === 1 ? 4 / 3 : f); };
+    for (const [st, iv, len] of BASS[B.bass](c)) put('bass', sw(st), root + iv, 92, len);
+    for (const [st, len, kind, idx] of COMP[B.comp]()) {
+      const notes = kind === 'power' ? power : kind === 'arp' ? [voic.concat(voic[0] + 12)[idx % (voic.length + 1)]] : voic;
+      for (const n of notes) put('comp', sw(st), n, kind === 'arp' ? 74 : 80, len);
+    }
+    return out;
+  }
+  // Load the real instrument sounds for a drill's backing (first time only)
+  function prepareDrillMusic(d) {
+    const style = drillStyle(d); if (!style || !musicOn()) return;
+    const notes = []; for (let b = 0; b < 4; b++) notes.push(...drillBacking(style, d.meter, b, 0, 0.1));
+    prepareInstruments({ notes, drumCh: -1 });
+  }
   // Appends n bars of the current drill at the end of a drill play (used for fixed lengths and for endless loop).
   function appendDrillBars(p, n, bpm) {
     const M = p.pat.meter, clicks = M ? M.clicks : [0, 4, 8, 12];
     const sixteenth = 60 / bpm / (M ? M.beat : 4), bar = sixteenth * (M ? M.steps : 16);
     const vk = mode === 'course' || $('voiceWrap').hidden ? 'snare' : $('voiceSel').value;
     const build = vk !== 'snare' ? voice(p.pat.build, vk) : p.pat.build;
-    const notes = [], drums = [];
+    const notes = [], drums = [], music = [];
+    if (p.musicStyle === undefined) p.musicStyle = musicOn() ? drillStyle(p.pat) : null;
     for (let k = 0; k < n; k++) {
       const b = p.nextBar++, t0 = p.tEnd;
+      if (p.musicStyle) music.push(...drillBacking(p.musicStyle, M, b, t0, sixteenth));
       for (const [step, lane, mod] of build(b)) {
         const m = typeof mod === 'object' && mod ? mod : { open: mod === 'open' };
         const t = t0 + step * sixteenth;
@@ -1824,8 +1935,8 @@ function midiToSong(mid, name, opts = {}) {
       p.tEnd = t0 + bar;
       if (b % LOOP_PASS === LOOP_PASS - 1) p.passEnds.push({ t: p.tEnd, bpm });
     }
-    notes.sort((a, b) => a.t - b.t); drums.sort((a, b) => a.t - b.t);
-    p.notes.push(...notes); p.drums.push(...drums);
+    notes.sort((a, b) => a.t - b.t); drums.sort((a, b) => a.t - b.t); music.sort((a, b) => a.t - b.t);
+    p.notes.push(...notes); p.drums.push(...drums); p.backing.push(...music);
   }
   // Endless loop: keep ~8 s of drill queued ahead, and score each 4-bar pass.
   function extendLoop(t) {
@@ -1973,6 +2084,11 @@ function midiToSong(mid, name, opts = {}) {
   refreshLoopUI();
 
   const startBtn = $('startBtn');
+  try { const v = JSON.parse(localStorage.getItem(MUSIC_KEY) || 'null'); if (v) { $('musicCourse').checked = v.c !== false; $('musicDrill').checked = v.d !== false; } } catch (e) {}
+  ['musicCourse', 'musicDrill'].forEach(id => $(id).addEventListener('change', () => {
+    try { localStorage.setItem(MUSIC_KEY, JSON.stringify({ c: $('musicCourse').checked, d: $('musicDrill').checked })); } catch (e) {}
+    if (running) stop(); const src = currentSource(); if (src.kind === 'pattern') prepareDrillMusic(src.pat);
+  }));
   function start(opts = {}) {
     if (opts && opts.type) opts = {}; // called as an event handler
     if (currentSource().kind === 'none') { $('songInfo').textContent = 'Pick a song first: use “Set MIDI library” or “Load one song”, or switch to Drills.'; return; }
@@ -1981,6 +2097,7 @@ function midiToSong(mid, name, opts = {}) {
     const cl = mode === 'course' && !placement ? curLesson() : null, cst = cl && stepFor(cl);
     buildLimbs = cst && !opts.demo ? cst.limbs : 'all';
     if (cl && cl.drill && cl.drill.sight) cl.drill.seed = (Date.now() & 0xffffff) + 1; // a new piece every attempt
+    if (currentSource().kind === 'pattern') prepareDrillMusic(currentSource().pat);
     play = buildPlay();
     if (cst) play.limbs = buildLimbs;
     play.sight = !!(cl && cl.drill && cl.drill.sight);
@@ -2526,8 +2643,13 @@ function midiToSong(mid, name, opts = {}) {
     six16:    { h: 'XxxxXxxxXxxxXxxx', s: '----x-------x---', k: 'x-----x-x-----x-' },
     six16g:   { h: 'XxxxXxxxXxxxXxxx', s: '-g--X--g-g--X---', k: 'x-x---x---x---x-' },
     rockK8:   { h: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-x-x-x-x-x-x-x-' },
-    dbl:      { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx', p: 'x---x---x---x---' },
-    dblC:     { c: 'x---x---x---x---', s: '----x-------x---', k: 'xxxxxxxxxxxxxxxx' },
+    kickSync: { r: 'X-x-X-x-X-x-X-x-', s: '----x-------x---', k: 'x-xx--x-x-xx--x-', p: 'x---x---x---x---' },
+    second:   { s: 'X-gX-g-gX-gX-g-g', k: 'x-----x-x-----x-', p: '----x-------x---' },
+    secondC:  { c: 'x-------x-------', s: 'X-gX-g-gX-gX-g-g', k: 'x-----x-x-----x-', 3: '------------x---' },
+    dnb:      { h: 'x-x-x-x-x-x-x-x-', s: '----X--g-g--X---', k: 'x---------x-----' },
+    dnbC:     { r: 'x-x-x-x-x-x-x-x-', s: '----X--g-g--X--g', k: 'x-x-------x-----' },
+    moz:      { b: 'x-x-x-xx-xx-x-x-', s: 'g--Xg--gg--Xg--g', k: '------x-------x-' },
+    mozC:     { c: 'x---------------', b: '--x-x-xx-xx-x-x-', s: 'g--Xg--gg--Xg--g', k: '------x-------x-', 3: '-------x-------x' },
   };
   // Fills take over the last `beats` beats of a section's final bar.
   const FILLS = {
@@ -2556,6 +2678,7 @@ function midiToSong(mid, name, opts = {}) {
   }
   // Backing parts, per bar: [step16, interval or chord-tone, length in 16ths]. Steps are swung in shuffle songs.
   const BASS = {
+    walk:     (c) => [[0, 0, 4], [4, c.iv[1], 4], [8, 7, 4], [12, c.iv[3] ?? 9, 4]],
     whole:    () => [[0, 0, 16]],
     half:     () => [[0, 0, 8], [8, 0, 8]],
     half5:    () => [[0, 0, 8], [8, 7, 8]],
@@ -2570,6 +2693,7 @@ function midiToSong(mid, name, opts = {}) {
   };
   const COMP = { // chord hits: [step16, length]
     pad:      () => [[0, 16]],
+    charleston: () => [[0, 3], [6, 2]],
     halfs:    () => [[0, 8], [8, 8]],
     quarters: () => [[0, 3], [4, 3], [8, 3], [12, 3]],
     stabs8:   () => [0, 2, 4, 6, 8, 10, 12, 14].map(s => [s, 2]),
@@ -2676,15 +2800,39 @@ function midiToSong(mid, name, opts = {}) {
         C: { ch: ['Abmaj7', 'Gm7', 'Fm7', 'G7'], g: 'six16g', comp: 'funk', bass: 'funk', pad: true, lead: '8---8-9-5---3---' },
         O: { ch: ['Cm7', 'F7'], g: 'linear', comp: 'funk', bass: 'funk' } },
       form: 'I4 V8 C8 V8 C8 O4' },
-    { title: 'Thunder Feet', lvl: 3, bpm: 112, why: '8th-note kick in the verse, then 16th-note kick under ride and crash. Builds a fast, even foot.',
+    { title: 'Thunder Feet', lvl: 3, bpm: 112, why: '8th-note kick in the verse and a busy, syncopated kick in the chorus. Builds a fast, even (single) foot.',
       inst: { bass: 34, comp: 30, pad: 48 }, fill: 'r16b',
       parts: {
         I: { ch: ['E5', 'C5', 'D5', 'B5'], g: 'rock8', comp: 'powerHold', bass: 'half', fill: 'r16' },
         V: { ch: ['E5', 'C5', 'D5', 'B5'], g: 'rockK8', comp: 'power8', bass: 'eighths', fill: 'r16' },
-        C: { ch: ['C', 'D', 'Em', 'Em', 'C', 'D', 'B', 'B'], g: 'dbl', comp: 'powerHold', bass: 'sixteen', pad: true },
-        B: { ch: ['Am', 'Am', 'B', 'B'], g: 'dblC', comp: 'powerHold', bass: 'sixteen' },
+        C: { ch: ['C', 'D', 'Em', 'Em', 'C', 'D', 'B', 'B'], g: 'kickSync', comp: 'powerHold', bass: 'eighths', pad: true },
+        B: { ch: ['Am', 'Am', 'B', 'B'], g: 'crash4', comp: 'powerHold', bass: 'eighths' },
         O: { ch: ['E5', 'C5', 'D5', 'E5'], g: 'rockK8', comp: 'power8', bass: 'eighths' } },
       form: 'I4 V8 C8 V8 C8 B4 C8 O4' },
+    { title: 'Second Line Strut', lvl: 3, bpm: 100, why: 'A New Orleans street beat: busy snare accents and ghost notes with a kick that answers it, under a brass band.',
+      inst: { bass: 58, comp: 61, lead: 56 }, fill: 'r16',
+      parts: {
+        I: { ch: ['Bb', 'Bb', 'F7', 'F7'], g: 'second', comp: 'offbeat', bass: 'half5' },
+        V: { ch: ['Bb', 'Bb', 'Eb', 'Eb', 'Bb', 'Bb', 'F7', 'Bb'], g: 'second', comp: 'offbeat', bass: 'boogie' },
+        C: { ch: ['Eb', 'Eb', 'Bb', 'Bb', 'F7', 'Eb', 'Bb', 'F7'], g: 'secondC', comp: 'push', bass: 'boogie', lead: '5---6-5-3---1---' },
+        O: { ch: ['Bb', 'F7', 'Bb', 'Bb'], g: 'second', comp: 'offbeat', bass: 'half5' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
+    { title: 'Night Bus', lvl: 3, bpm: 172, why: 'Drum & bass at 172: a light hi-hat, ghost notes and a kick on 1 and the "&" of 3. Speed with control.',
+      inst: { bass: 38, comp: 4, pad: 89 }, fill: 'lin',
+      parts: {
+        I: { ch: ['Am7', 'Am7', 'Fmaj7', 'G'], g: 'hats8', comp: 'pad', bass: 'whole', pad: true },
+        V: { ch: ['Am7', 'Am7', 'Fmaj7', 'G'], g: 'dnb', comp: 'pad', bass: 'push', pad: true },
+        C: { ch: ['Fmaj7', 'G', 'Am7', 'Am7', 'Fmaj7', 'G', 'Em7', 'Am7'], g: 'dnbC', comp: 'arp16', bass: 'push', pad: true },
+        O: { ch: ['Am7', 'Fmaj7', 'G', 'Am7'], g: 'dnb', comp: 'pad', bass: 'whole' } },
+      form: 'I4 V8 C8 V8 C8 C8 O4' },
+    { title: 'Clave Street', lvl: 3, bpm: 112, why: 'Mozambique: a bell pattern on the ride, snare accents and a kick on the "&" of 2 and 4. Hold the bell steady.',
+      inst: { bass: 32, comp: 0, lead: 56, pad: 48 }, fill: 'six',
+      parts: {
+        I: { ch: ['Cm7', 'F7'], g: 'moz', comp: 'funk', bass: 'tribal' },
+        V: { ch: ['Cm7', 'F7', 'Cm7', 'F7'], g: 'moz', comp: 'funk', bass: 'tribal' },
+        C: { ch: ['Abmaj7', 'G7', 'Cm7', 'Cm7'], g: 'mozC', comp: 'push', bass: 'tribal', pad: true, lead: '5---8-5---3-1---' },
+        O: { ch: ['Cm7', 'F7', 'Cm7', 'Cm7'], g: 'moz', comp: 'funk', bass: 'tribal' } },
+      form: 'I4 V8 C8 V8 C8 O4' },
   ];
   function buildOriginal(i) {
     const def = ORIGINALS[i], PPQ = 480, S16 = PPQ / 4, BAR = PPQ * 4;
