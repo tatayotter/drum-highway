@@ -197,9 +197,13 @@
   body.focus .toolbar { opacity: .45; transition: opacity .3s; }
   body.focus .toolbar:hover { opacity: 1; }
   /* Focus mode keeps the hit-sound switch on screen (the sidebar is hidden) */
-  #focusSound { position: absolute; top: 12px; left: 12px; z-index: 2; display: none; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
-    background: rgba(20,22,28,.85); border: 1px solid var(--line); font-size: 13px; cursor: pointer; }
-  body.focus #focusSound { display: flex; }
+  #focusBar { position: absolute; top: 12px; left: 12px; z-index: 2; display: none; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 12px;
+    background: rgba(20,22,28,.88); border: 1px solid var(--line); font-size: 13px; max-width: 200px; opacity: .75; transition: opacity .2s; }
+  #focusBar:hover { opacity: 1; }
+  #focusBar label { display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
+  #focusBar .fbVol { flex-direction: column; align-items: stretch; gap: 2px; font-size: 11px; color: var(--muted); }
+  #focusBar input[type=range] { width: 100%; }
+  body.focus #focusBar { display: flex; }
 
   /* score HUD */
   .hud { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
@@ -358,7 +362,14 @@
 </div>
 <main>
   <div id="stage"><canvas id="cv"></canvas>
-    <label id="focusSound" class="sw" title="Play the drum sound when you hit a pad or key"><input id="focusSoundOn" type="checkbox" checked> Drum sound</label></div>
+    <div id="focusBar">
+      <label class="sw" title="Play the drum sound when you hit a pad or key"><input id="fbSound" type="checkbox" checked> Drum sound</label>
+      <label class="sw" title="Metronome click"><input id="fbClick" type="checkbox" checked> Click</label>
+      <label class="sw" title="The app plays the drum part along with you"><input id="fbHear" type="checkbox"> Hear part</label>
+      <label class="sw fbMusic" title="Bass and keys under lessons and drills"><input id="fbMusic" type="checkbox" checked> Music</label>
+      <label class="fbVol" title="Click volume">Click vol <input id="fbClickVol" type="range" min="0" max="100"></label>
+      <label class="fbVol" title="Music volume">Music vol <input id="fbBackVol" type="range" min="0" max="100"></label>
+    </div></div>
   <aside>
     <section class="hud">
       <div class="hud-top">
@@ -435,6 +446,7 @@
         <div class="row"><label class="sw"><input id="showNotation" type="checkbox" checked> Show drum notation</label></div>
         <div class="row"><label class="sw"><input id="pageView" type="checkbox"> Full-page sheet music instead of the highway (key N)</label></div>
         <div class="row"><label class="sw"><input id="clickOn" type="checkbox" checked> Metronome click</label></div>
+        <div class="row"><label>Click volume <input id="clickVol" type="range" min="0" max="100" value="70"></label></div>
         <div class="row"><label>Hit window <select id="hitWin">
           <option value="tight">Tight ±80 ms</option><option value="normal" selected>Normal ±120 ms</option><option value="relaxed">Relaxed ±160 ms</option>
         </select></label></div>
@@ -672,17 +684,36 @@ function midiToSong(mid, name, opts = {}) {
     // Focus mode: hide the sidebar while playing. When a run ends, wait a moment before showing it again,
     // so a speed-trainer auto-restart doesn't make the panel flash in and out.
     clearTimeout(setRunBtn.tm);
-    if (on) document.body.classList.toggle('focus', $('autoHide').checked);
+    if (on) { document.body.classList.toggle('focus', $('autoHide').checked); syncFocusBar(); }
     else setRunBtn.tm = setTimeout(() => { if (!running) document.body.classList.remove('focus'); }, $('trainOn').checked && mode === 'drills' ? 2600 : 0);
     const b = $('startBtn'); b.classList.toggle('running', on);
     b.querySelector('use').setAttribute('href', on ? '#i-stop' : '#i-play'); b.querySelector('.t').textContent = on ? 'Stop' : 'Start';
   }
   const TAB_KEY = 'drumHighway.tab.v1', HIDE_KEY = 'drumHighway.autoHide.v1';
   try { if (localStorage.getItem(HIDE_KEY) === '0') $('autoHide').checked = false; } catch (e) {}
-  // the Focus mode switch mirrors "Play sounds when I hit"
-  $('focusSoundOn').checked = $('soundOnHit').checked;
-  $('focusSoundOn').addEventListener('change', () => { $('soundOnHit').checked = $('focusSoundOn').checked; $('soundOnHit').dispatchEvent(new Event('change')); $('focusSoundOn').blur(); });
-  $('soundOnHit').addEventListener('change', () => { $('focusSoundOn').checked = $('soundOnHit').checked; });
+  // Focus mode quick controls: each one mirrors a sidebar control (which one can depend on the mode)
+  const FB = {
+    fbSound: () => 'soundOnHit', fbClick: () => 'clickOn',
+    fbHear: () => mode === 'course' ? 'hearCourse' : mode === 'drills' ? 'hearDrill' : 'hearDrums',
+    fbMusic: () => mode === 'course' ? 'musicCourse' : mode === 'drills' ? 'musicDrill' : null,
+    fbClickVol: () => 'clickVol', fbBackVol: () => 'backVol',
+  };
+  function syncFocusBar() {
+    for (const [fid, tgt] of Object.entries(FB)) {
+      const t = tgt(), el = $(fid); el.closest('label').hidden = !t; if (!t) continue;
+      if (el.type === 'checkbox') el.checked = $(t).checked; else el.value = $(t).value;
+    }
+  }
+  for (const [fid, tgt] of Object.entries(FB)) {
+    const el = $(fid), ev = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      const t = $(tgt()); if (!t) return;
+      if (el.type === 'checkbox') t.checked = el.checked; else t.value = el.value;
+      t.dispatchEvent(new Event(ev)); t.dispatchEvent(new Event('change'));
+      if (el.type === 'checkbox') el.blur(); // so Space (kick) doesn't toggle it
+    });
+    el.addEventListener('pointerup', () => setTimeout(() => el.blur(), 0));
+  }
   $('autoHide').onchange = () => { try { localStorage.setItem(HIDE_KEY, $('autoHide').checked ? '1' : '0'); } catch (e) {} if (running) document.body.classList.toggle('focus', $('autoHide').checked); };
   function showTab(name) {
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
@@ -1550,8 +1581,16 @@ function midiToSong(mid, name, opts = {}) {
     if (ac.state === 'suspended') ac.resume();
     return ac;
   };
-  function updateVolumes() { if (backBus) backBus.gain.value = Math.pow($('backVol').value / 100, 1.5) * 1.2; if (drumBus) drumBus.gain.value = Math.pow($('drumVol').value / 100, 1.5) * 1.1; }
+  function updateVolumes() {
+    let mute = false; try { mute = !!(play && play.drill && !musicOn()); } catch (e) {} // lesson/drill music switched off mid-run
+    if (backBus) backBus.gain.value = mute ? 0 : Math.pow($('backVol').value / 100, 1.5) * 1.2;
+    if (drumBus) drumBus.gain.value = Math.pow($('drumVol').value / 100, 1.5) * 1.1;
+    if (clickBus) clickBus.gain.value = Math.pow($('clickVol').value / 100, 1.5) * 1.03;
+  }
   $('backVol').oninput = updateVolumes;
+  const VOL_KEY = 'drumHighway.clickVol.v1';
+  try { const v = localStorage.getItem(VOL_KEY); if (v !== null) $('clickVol').value = v; } catch (e) {}
+  $('clickVol').oninput = () => { updateVolumes(); try { localStorage.setItem(VOL_KEY, $('clickVol').value); } catch (e) {} };
   const now = () => ac ? ac.currentTime : performance.now() / 1000;
   // Smooth clock for drawing. The audio clock only advances in chunks (often ~10 ms on Windows), which makes the
   // highway step and stutter. We follow it with a gently filtered offset from the display's frame clock instead.
@@ -1926,7 +1965,7 @@ function midiToSong(mid, name, opts = {}) {
     const vk = mode === 'course' || $('voiceWrap').hidden ? 'snare' : $('voiceSel').value;
     const build = vk !== 'snare' ? voice(p.pat.build, vk) : p.pat.build;
     const notes = [], drums = [], music = [];
-    if (p.musicStyle === undefined) p.musicStyle = musicOn() ? drillStyle(p.pat) : null;
+    if (p.musicStyle === undefined) p.musicStyle = drillStyle(p.pat); // always written; switched on/off by volume
     for (let k = 0; k < n; k++) {
       const b = p.nextBar++, t0 = p.tEnd;
       if (p.musicStyle) music.push(...drillBacking(p.musicStyle, M, b, t0, sixteenth));
@@ -2096,7 +2135,7 @@ function midiToSong(mid, name, opts = {}) {
   try { const v = JSON.parse(localStorage.getItem(MUSIC_KEY) || 'null'); if (v) { $('musicCourse').checked = v.c !== false; $('musicDrill').checked = v.d !== false; } } catch (e) {}
   ['musicCourse', 'musicDrill'].forEach(id => $(id).addEventListener('change', () => {
     try { localStorage.setItem(MUSIC_KEY, JSON.stringify({ c: $('musicCourse').checked, d: $('musicDrill').checked })); } catch (e) {}
-    if (running) stop(); const src = currentSource(); if (src.kind === 'pattern') prepareDrillMusic(src.pat);
+    updateVolumes(); const src = currentSource(); if (src.kind === 'pattern') prepareDrillMusic(src.pat);
   }));
   function start(opts = {}) {
     if (opts && opts.type) opts = {}; // called as an event handler
@@ -2110,6 +2149,7 @@ function midiToSong(mid, name, opts = {}) {
     play = buildPlay();
     if (cst) play.limbs = buildLimbs;
     play.sight = !!(cl && cl.drill && cl.drill.sight);
+    updateVolumes(); // music on/off for this run
     play.startBar = Math.max(1, +$('startBar').value || 1);
     play.wallStart = performance.now();
     play.hasOpen = play.notes.some(n => n.open) || !!play.loop;
