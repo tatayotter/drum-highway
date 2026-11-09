@@ -24,7 +24,35 @@ Everything you load (MIDI library, drum samples, backing audio, settings) stays 
 
 ## Course
 
-Graded lessons from Debut to Grade 5, each grade ending in an exam (Pass, Merit or Distinction) and with original songs as grade pieces. Every lesson has **Watch first** (the app plays it for you), **Learn it** (wait mode) and **Play it**, plus tips. Lessons earn up to three stars: ★ pass at a slower practice tempo, ★★ pass at full tempo, ★★★ 95% at full tempo. **Today's practice** suggests a warm-up, your next lesson and a review each day.
+Graded lessons from Debut to Grade 5, about 140 lessons. Along with rudiments, grooves, fills, toms, timing and triplets, the course covers:
+
+- Flams and drags.
+- 3/4, 6/8, 5/4 and 7/8.
+- Jazz, samba, songo, Afro-Cuban 6/8, hip-hop and metal.
+- Hi-hat foot and double-kick lessons. Turn on the hi-hat pedal lane in Kit setup to get the foot scored.
+
+**Lessons.** Each lesson is split into steps: hands only, feet only, together at a slower tempo, then full tempo. Lessons that use only one part of the body step up the tempo instead. Every lesson also has:
+
+- **Watch first:** the app plays it for you.
+- **Learn it:** wait mode.
+- **Play it.**
+- A tip written for that lesson.
+
+**Stars.** Lessons earn up to three stars:
+
+- ★ pass at a slower practice tempo
+- ★★ pass at full tempo
+- ★★★ 95% at full tempo
+
+**Grade songs.** The original songs are the grade pieces.
+
+**Exams.** Each grade's exam has five parts:
+
+- Three set pieces.
+- A sight-reading piece that is new on every attempt and is shown only as sheet music.
+- An improvised fill: you play your own fill in every fourth bar and land on the crash.
+
+**Today's practice** suggests a warm-up, your next lesson and a review each day.
 
 ## Songs that come with the app
 
