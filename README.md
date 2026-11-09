@@ -22,6 +22,43 @@ Everything you load (MIDI library, drum samples, backing audio, settings) stays 
 - **Hi-hat:** open and closed hi-hat are scored (Q on the keyboard plays an open hi-hat). Kit setup has an optional hi-hat pedal lane (key V) for the foot "chick" notes.
 - **Dynamics:** accents must be hit hard and ghost notes softly. You can set the velocity limits for your kit. On the keyboard, hold Shift to play an accent.
 
+## Course
+
+Graded lessons from Debut to Grade 8, about 175 lessons. Along with rudiments, grooves, fills, toms, timing and triplets, the course covers:
+
+- Flams and drags, plus longer rolls.
+- 3/4, 6/8, 5/4, 7/8, 9/8 and 11/8.
+- Polyrhythms and groupings: 3 over 4, 3 over 2, groups of 5 and 7.
+- Jazz, Latin (samba, songo, Mozambique, clave, cascara), New Orleans, gospel, hip-hop and drum & bass.
+- Hi-hat foot lessons. Turn on the hi-hat pedal lane in Kit setup to get the foot scored.
+
+Everything works with a single bass drum pedal. There are no double-pedal exercises.
+
+**Lessons.** Each lesson is split into steps: hands only, feet only, together at a slower tempo, then full tempo. Lessons that use only one part of the body step up the tempo instead. Every lesson also has:
+
+- **Watch first:** the app plays it for you.
+- **Learn it:** wait mode.
+- **Play it.**
+- A tip written for that lesson.
+
+**Backing music.** Lessons and drills play over backing music: bass and keys in a style that fits the groove (rock, funk, shuffle, jazz, Latin and others). You can turn it off. Timing drills with a gap in the click have no music, so you have to keep time on your own.
+
+**Stars.** Lessons earn up to three stars:
+
+- ★ pass at a slower practice tempo
+- ★★ pass at full tempo
+- ★★★ 95% at full tempo
+
+**Grade songs.** The 15 original songs are the grade pieces.
+
+**Exams.** Each grade's exam has five parts:
+
+- Three set pieces.
+- A sight-reading piece that is new on every attempt and is shown only as sheet music.
+- An improvised fill: you play your own fill in every fourth bar and land on the crash.
+
+**Today's practice** suggests a warm-up, your next lesson and a review each day.
+
 ## Songs that come with the app
 
 **Drum Highway originals:** 12 songs written for this app, built in, from Beginner to Advanced (rock, disco, ballad, funk, blues shuffle, tribal toms, punk, linear funk, 16th-note kick). Each one has a bass, chord and melody backing part and teaches one skill. Pick them at the top of the Song list. They are free to share with the app.
