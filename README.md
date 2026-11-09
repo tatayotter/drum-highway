@@ -12,6 +12,12 @@ A note-highway practice app for electronic drum kits. Play along with MIDI songs
 
 Everything you load (MIDI library, drum samples, backing audio, settings) stays in your own browser.
 
+## Practice tools (Practice tab)
+
+- **Wait mode:** the notes stop at the hit line until you hit the right drum. Use it to learn a new part, then turn it off to play it in time.
+- **Run report:** after each run you see whether you rush or drag, how steady you are, which drum needs work, the hardest bars of a song (with a button to loop them slowly), and how well you played accents and ghost notes.
+- **Dynamics:** accents must be hit hard and ghost notes softly. You can set the velocity limits for your kit. On the keyboard, hold Shift to play an accent.
+
 ## Songs that come with the app
 
 **Drum Highway originals:** 12 songs written for this app, built in, from Beginner to Advanced (rock, disco, ballad, funk, blues shuffle, tribal toms, punk, linear funk, 16th-note kick). Each one has a bass, chord and melody backing part and teaches one skill. Pick them at the top of the Song list. They are free to share with the app.

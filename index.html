@@ -122,6 +122,21 @@
   .mopt.primary span { color: var(--accent-ink); }
   #pmCancel { align-self: flex-end; }
   .mark.Placed { background: rgba(255,255,255,.08); color: var(--muted); }
+  .rcard { width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+  .rtop { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .rtop b { font: 800 34px var(--mono); color: var(--good); }
+  .rsec { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .rsec h3 { margin: 0; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+  .rsec .big { font-size: 15px; font-weight: 700; }
+  .rsec svg { width: 100%; height: auto; display: block; }
+  .rlane { display: grid; grid-template-columns: 82px 1fr 48px 62px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .rlane i { display: block; height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+  .rlane i s { display: block; height: 100%; text-decoration: none; }
+  .rlane em { font-style: normal; color: var(--muted); font-family: var(--mono); text-align: right; }
+  .rlane.weak { color: var(--ok); }
+  .rbars { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rbars span { background: var(--surface-3); border-radius: 6px; padding: 3px 8px; font-size: 12px; }
+  .rbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
   .bpmread { height: 34px; display: flex; align-items: center; font: 700 15px var(--mono); padding: 0 4px; }
   /* course */
   .lesson { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 6px; }
@@ -279,6 +294,17 @@
   <input id="fileInput" type="file" accept=".mid,.midi,audio/midi" hidden>
   <label class="field scroll"><span>Scroll speed</span><input id="speed" type="range" min="200" max="900" value="450"></label>
 </div>
+<div id="rModal" class="modal" hidden>
+  <div class="mcard rcard" role="dialog" aria-labelledby="rTitle">
+    <div class="rtop"><h2 id="rTitle">Run report</h2><b id="rAcc">–</b></div>
+    <p id="rSub"></p>
+    <div class="rsec" id="rTiming"></div>
+    <div class="rsec" id="rLanes"></div>
+    <div class="rsec" id="rDyn" hidden></div>
+    <div class="rsec" id="rBarsSec" hidden></div>
+    <div class="rbtns"><button id="rLoop" hidden></button><button id="rAgain" class="primary"><span class="t">Play again</span></button><button id="rClose" class="ghost">Close</button></div>
+  </div>
+</div>
 <div id="pModal" class="modal" hidden>
   <div class="mcard" role="dialog" aria-labelledby="pmTitle">
     <h2 id="pmTitle">Create your player profile</h2>
@@ -348,6 +374,17 @@
         </div>
         <p class="hint loopRow">Plays the bars over and over with no break. Start slow (set Tempo to 60–70%): each pass you play at 90% or better speeds it up, until 100%.</p>
         <p class="hint" id="instInfo"></p>
+      </div>
+      <div id="toolsSec">
+      <h2>Practice tools</h2>
+      <div class="rows">
+        <div class="row" id="waitRow"><label class="sw"><input id="waitOn" type="checkbox"> Wait mode: the notes stop until you hit them</label></div>
+        <div class="row"><label class="sw"><input id="dynOn" type="checkbox" checked> Score accents and ghost notes</label></div>
+        <div class="row dynRow"><label>Accent = velocity at least <input id="dynAcc" type="number" min="40" max="127" value="100"></label></div>
+        <div class="row dynRow"><label>Ghost = velocity at most <input id="dynGhost" type="number" min="1" max="110" value="60"></label></div>
+        <div class="row"><label class="sw"><input id="reportOn" type="checkbox" checked> Show a report after each run</label></div>
+      </div>
+      <p class="hint" id="waitHint">Wait mode is for learning a new part: there's no backing or click, and the highway holds at each note until you hit the right drum. On the keyboard, hold Shift to play an accent.</p>
       </div>
       <h2>Display &amp; timing</h2>
       <div class="rows">
@@ -1069,7 +1106,7 @@ function midiToSong(mid, name, opts = {}) {
   let effects = [];
   let laneFlash = new Array(lanes.length).fill(-10);
   let schedIdx = { backing: 0, drums: 0, beats: 0 };
-  const resetStats = () => { stats = { score: 0, combo: 0, best: 0, perfect: 0, good: 0, miss: 0, extra: 0, dts: [] }; renderStats(); };
+  const resetStats = () => { stats = { score: 0, combo: 0, best: 0, perfect: 0, good: 0, miss: 0, extra: 0, dts: [], dynOk: 0, dynTotal: 0 }; renderStats(); };
 
   // ---------- Audio ----------
   let ac = null, master = null, backBus = null, drumBus = null, clickBus = null, noiseBuf = null;
@@ -1431,7 +1468,7 @@ function midiToSong(mid, name, opts = {}) {
         play.pass++;
         const acc = P + G + M ? (P + G * 0.5) / (P + G + M) : 0, pct = Math.round(acc * 100);
         let tempo = +$('tempoPct').value || 100, msg = `Pass ${play.pass}: ${pct}%`;
-        const step = +$('loopStep').value;
+        const step = play.wait ? 0 : +$('loopStep').value;
         if (step && acc >= 0.9 && tempo < 100) { tempo = Math.min(100, tempo + step); $('tempoPct').value = String(tempo); msg += `, clean! Next pass at ${tempo}%`; }
         else if (step && acc >= 0.9) msg += ', full speed 🏁';
         else if (step) msg += `, staying at ${tempo}%`;
@@ -1448,7 +1485,7 @@ function midiToSong(mid, name, opts = {}) {
       play.pass++;
       const acc = P + G + M ? (P + G * 0.5) / (P + G + M) : 0, pct = Math.round(acc * 100);
       let msg = `Pass ${play.pass}: ${pct}%`;
-      if ($('trainOn').checked) {
+      if ($('trainOn').checked && !play.wait) {
         const bpm = drillBpm(), target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
         if (acc >= 0.9 && bpm < target) { const nb = Math.min(target, bpm + step); $('bpm').value = nb; saveDrill(); msg += `, clean! Speeding up to ${nb} BPM`; }
         else if (acc >= 0.9) msg += `, target ${target} BPM reached 🏁`;
@@ -1567,6 +1604,9 @@ function midiToSong(mid, name, opts = {}) {
     runId++;
     ensureAudio();
     play = buildPlay();
+    play.startBar = Math.max(1, +$('startBar').value || 1);
+    if ($('waitOn').checked && mode !== 'course') { play.wait = true; play.audio = null; }
+    $('rModal').hidden = true;
     resetStats();
     effects = [];
     schedIdx = { backing: 0, drums: 0, beats: 0 };
@@ -1587,7 +1627,7 @@ function midiToSong(mid, name, opts = {}) {
       updateVolumes();
     }
   }
-  startBtn.onclick = () => { runId++; if (running) { stop(); trainerMsg = ''; } else start(); };
+  startBtn.onclick = () => { runId++; if (running) { stop(); trainerMsg = ''; showReport(); } else start(); };
 
   function refreshSourceUI() {
     const src = currentSource();
@@ -1595,6 +1635,7 @@ function midiToSong(mid, name, opts = {}) {
     $('songCtl').hidden = mode !== 'songs'; $('drillCtl').hidden = mode !== 'drills'; $('courseCtl').hidden = mode !== 'course';
     $('songSide').hidden = mode !== 'songs'; $('drillSide').hidden = mode !== 'drills'; $('courseSide').hidden = mode !== 'course';
     $('songInfo').hidden = mode === 'course';
+    $('waitRow').hidden = mode === 'course';
     if (mode === 'course') renderCourse();
     document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
     $('drumChRow').hidden = src.kind !== 'midi' || !!src.song.fixedDrums;
@@ -1662,11 +1703,11 @@ function midiToSong(mid, name, opts = {}) {
     const judged = stats.perfect + stats.good + stats.miss;
     const acc = judged ? (stats.perfect + stats.good * 0.5) / judged : 0;
     if (mode === 'course') { trainerMsg = courseResult(acc); return; }
-    if (mode !== 'drills' || !$('trainOn').checked) { trainerMsg = ''; return; }
+    if (mode !== 'drills' || !$('trainOn').checked || play.wait) { trainerMsg = ''; showReport(); return; }
     const bpm = +$('bpm').value, target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
     const pct = Math.round(acc * 100);
     if (acc >= 0.9) {
-      if (bpm >= target) { trainerMsg = `🏁 ${pct}% at ${bpm} BPM. Target reached!`; return; }
+      if (bpm >= target) { trainerMsg = `🏁 ${pct}% at ${bpm} BPM. Target reached!`; showReport(); return; }
       const nb = Math.min(target, bpm + step);
       $('bpm').value = nb; saveDrill();
       trainerMsg = `✓ Clean round (${pct}%). Next: ${nb} BPM`;
@@ -1674,6 +1715,90 @@ function midiToSong(mid, name, opts = {}) {
     const id = ++runId;
     setTimeout(() => { if (id === runId && !running && mode === 'drills') start(); }, 2200);
   }
+
+  // ---------- Practice tools: settings ----------
+  const TOOLS_KEY = 'drumHighway.tools.v1';
+  try { const v = JSON.parse(localStorage.getItem(TOOLS_KEY) || 'null'); if (v) { ['waitOn', 'dynOn', 'reportOn'].forEach(k => { if (k in v) $(k).checked = !!v[k]; }); if (v.dynAcc) $('dynAcc').value = v.dynAcc; if (v.dynGhost) $('dynGhost').value = v.dynGhost; } } catch (e) {}
+  function saveTools() {
+    try { localStorage.setItem(TOOLS_KEY, JSON.stringify({ waitOn: $('waitOn').checked, dynOn: $('dynOn').checked, reportOn: $('reportOn').checked, dynAcc: +$('dynAcc').value, dynGhost: +$('dynGhost').value })); } catch (e) {}
+    document.querySelectorAll('.dynRow').forEach(r => r.hidden = !$('dynOn').checked);
+  }
+  ['waitOn', 'dynOn', 'reportOn', 'dynAcc', 'dynGhost'].forEach(id => $(id).addEventListener('change', () => { if (id === 'waitOn' && running) stop(); saveTools(); }));
+  saveTools();
+
+  // ---------- After-run report ----------
+  function showReport() {
+    if (!$('reportOn').checked || !play || mode === 'course') return;
+    const judgedNotes = play.notes.filter(n => n.state !== 'pending');
+    if (judgedNotes.length < 8) return;
+    const credit = (n) => n.state === 'perfect' ? 1 : n.state === 'good' ? 0.5 : 0;
+    const accOf = (ns) => ns.length ? ns.reduce((a, n) => a + credit(n), 0) / ns.length : 0;
+    const hits = judgedNotes.filter(n => n.state !== 'miss');
+    const acc = accOf(judgedNotes);
+    $('rAcc').textContent = Math.round(acc * 100) + '%';
+    const what = play.drill ? (mode === 'drills' ? currentDrill().name : 'Lesson') : (currentSource().song?.name || 'Song');
+    $('rSub').textContent = `${what}${play.wait ? ' · wait mode' : ''}: ${hits.length} of ${judgedNotes.length} notes hit, best combo ${stats.best}${stats.extra ? `, ${stats.extra} extra hit${stats.extra > 1 ? 's' : ''}` : ''}.`;
+    // --- timing ---
+    const timed = hits.filter(n => !n.held).map(n => n.dt * 1000);
+    let th = '<h3>Timing</h3>';
+    if (play.wait) th += '<div>Wait mode doesn’t score timing. Turn it off when the part feels easy, to play it in time.</div>';
+    else if (timed.length >= 4) {
+      const mean = timed.reduce((a, b) => a + b, 0) / timed.length;
+      const sd = Math.sqrt(timed.reduce((a, b) => a + (b - mean) ** 2, 0) / timed.length);
+      const verdict = mean < -12 ? `You’re rushing: on average ${Math.round(-mean)} ms early.` : mean > 12 ? `You’re dragging: on average ${Math.round(mean)} ms late.` : `Right on the beat (average ${mean > 0 ? '+' : ''}${Math.round(mean)} ms).`;
+      const steady = sd < 15 ? 'very steady' : sd < 30 ? 'fairly steady' : 'uneven: some hits are far from the beat';
+      th += `<div class="big">${verdict}</div><div>Spread ±${Math.round(sd)} ms, ${steady}.</div>`;
+      // histogram, 10 ms bins across the hit window
+      const lim = Math.round(WIN_GOOD * 1000), bins = Math.ceil(lim / 10) * 2, cnt = new Array(bins).fill(0);
+      for (const d of timed) cnt[Math.max(0, Math.min(bins - 1, Math.floor((d + lim) / 10)))]++;
+      const mx = Math.max(...cnt), Wd = 560, Hh = 70, bw = Wd / bins;
+      let svg = `<svg viewBox="0 0 ${Wd} ${Hh + 18}" role="img" aria-label="Timing spread">`;
+      cnt.forEach((c, i) => { const h = mx ? c / mx * Hh : 0, mid = (i + 0.5) * 10 - lim, col = Math.abs(mid) <= WIN_PERFECT * 1000 ? '#3ddc97' : '#f2c14e'; if (c) svg += `<rect x="${(i * bw + 1).toFixed(1)}" y="${(Hh - h).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${col}"/>`; });
+      svg += `<line x1="${Wd / 2}" y1="0" x2="${Wd / 2}" y2="${Hh}" stroke="rgba(255,255,255,.35)" stroke-dasharray="3 3"/>`;
+      svg += `<text x="2" y="${Hh + 14}" fill="#8c93a3" font-size="11">← early</text><text x="${Wd / 2}" y="${Hh + 14}" fill="#8c93a3" font-size="11" text-anchor="middle">on the beat</text><text x="${Wd - 2}" y="${Hh + 14}" fill="#8c93a3" font-size="11" text-anchor="end">late →</text></svg>`;
+      th += svg;
+    } else th += '<div>Not enough hits to judge your timing yet.</div>';
+    $('rTiming').innerHTML = th;
+    // --- per drum ---
+    const rows = lanes.map((l, i) => { const ns = judgedNotes.filter(n => n.lane === i), ts = ns.filter(n => n.state !== 'miss' && !n.held).map(n => n.dt * 1000); return { l, n: ns.length, acc: accOf(ns), mean: ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length : null }; }).filter(r => r.n);
+    const weak = rows.filter(r => r.n >= 4).sort((a, b) => a.acc - b.acc)[0];
+    let lh = '<h3>By drum</h3>' + (weak && weak.acc < 0.9 && rows.length > 1 ? `<div class="big">Work on: ${weak.l.name} (${Math.round(weak.acc * 100)}%)</div>` : '');
+    for (const r of rows) lh += `<div class="rlane${r === weak && weak.acc < 0.9 && rows.length > 1 ? ' weak' : ''}"><span>${r.l.name}</span><i><s style="width:${Math.round(r.acc * 100)}%;background:${r.l.color}"></s></i><em>${Math.round(r.acc * 100)}%</em><em>${r.mean === null || play.wait ? '' : (r.mean > 0 ? '+' : '') + Math.round(r.mean) + ' ms'}</em></div>`;
+    $('rLanes').innerHTML = lh;
+    // --- dynamics ---
+    const dn = judgedNotes.filter(n => n.dyn);
+    $('rDyn').hidden = !dn.length;
+    if (dn.length) {
+      const ok = dn.filter(n => n.dyn === 'ok').length, soft = dn.filter(n => n.dyn === 'soft').length, loud = dn.filter(n => n.dyn === 'loud').length;
+      const accs = dn.filter(n => n.acc && n.vel), ghosts = dn.filter(n => !n.acc && n.ghost && n.vel);
+      const avg = (a) => Math.round(a.reduce((x, n) => x + n.vel, 0) / a.length);
+      $('rDyn').innerHTML = `<h3>Accents &amp; ghost notes</h3><div class="big">${ok} of ${dn.length} at the right strength (${Math.round(ok / dn.length * 100)}%)</div>` +
+        `<div>${soft ? `${soft} accent${soft > 1 ? 's' : ''} too soft. ` : ''}${loud ? `${loud} ghost note${loud > 1 ? 's' : ''} too loud. ` : ''}${accs.length ? `Your accents average velocity ${avg(accs)}. ` : ''}${ghosts.length ? `Your ghost notes average ${avg(ghosts)}.` : ''}</div>`;
+    }
+    // --- weakest bars (songs) ---
+    const downs = play.beats.filter(b => b.down && !b.countIn);
+    const barOf = (t) => { let k = -1; for (let i = 0; i < downs.length && downs[i].t <= t + 1e-4; i++) k = i; return k < 0 ? null : downs[k].barNo ?? (play.drill ? k + 1 : play.startBar + k); };
+    const byBar = new Map();
+    for (const n of judgedNotes) { const b = barOf(n.t); if (b === null) continue; if (!byBar.has(b)) byBar.set(b, []); byBar.get(b).push(n); }
+    const worst = [...byBar].map(([b, ns]) => ({ b, acc: accOf(ns) })).filter(x => x.acc < 0.85).sort((a, b) => a.acc - b.acc).slice(0, 4);
+    $('rBarsSec').hidden = !worst.length || !!play.drill;
+    $('rLoop').hidden = true;
+    if (worst.length && !play.drill) {
+      $('rBarsSec').innerHTML = '<h3>Hardest bars</h3><div class="rbars">' + worst.map(x => `<span>Bar ${x.b} · ${Math.round(x.acc * 100)}%</span>`).join('') + '</div>';
+      const s = currentSource().song, A = worst[0].b, B = Math.min(A + 1, s ? s.barStarts.length : A + 1);
+      $('rLoop').hidden = false; btnText('rLoop', `Loop bars ${A}–${B} at 70%`);
+      $('rLoop').onclick = () => {
+        $('rModal').hidden = true;
+        $('loopOn').checked = true; $('startBar').value = A; $('loopTo').value = B; $('tempoPct').value = '70'; if (+$('loopStep').value === 0) $('loopStep').value = '5';
+        refreshLoopUI(); showTab('practice'); play = buildPlay(); start();
+      };
+    }
+    $('rModal').hidden = false;
+  }
+  $('rClose').onclick = () => { $('rModal').hidden = true; };
+  $('rAgain').onclick = () => { $('rModal').hidden = true; start(); };
+  $('rModal').addEventListener('click', (e) => { if (e.target === $('rModal')) $('rModal').hidden = true; });
+  window.addEventListener('keydown', (e) => { if (!$('rModal').hidden && e.key === 'Escape') $('rModal').hidden = true; }, true);
 
   patternSel.onchange = async () => {
     const key = patternSel.value;
@@ -2491,13 +2616,15 @@ function midiToSong(mid, name, opts = {}) {
   }
 
   // ---------- Hit judging ----------
-  function onHit(lane, vel = 100, note = null) {
+  function onHit(lane, vel = 100, note = null, kb = false) {
     laneFlash[lane] = performance.now();
     if (calib) { calibHit(); return; }
     if ($('soundOnHit').checked && !compSound) { ensureAudio(); scheduleDrum(ac.currentTime, note ?? LANE_SOUND[lanes[lane].id], vel, lanes[lane].id); }
     if (!running) return;
     const latency = (+$('latency').value || 0) / 1000;
-    const t = now() - startAt - latency;
+    // In wait mode, while the highway is holding at a note, the hit counts at that note's time.
+    const held = !!(play.wait && play.holding);
+    const t = held ? play.holdT : now() - startAt - latency;
     let best = null, bestAbs = Infinity;
     for (const n of play.notes) {
       if (n.t > t + WIN_GOOD) break;
@@ -2508,11 +2635,21 @@ function midiToSong(mid, name, opts = {}) {
     if (best && bestAbs <= WIN_GOOD) {
       best.dt = t - best.t;
       best.state = bestAbs <= WIN_PERFECT ? 'perfect' : 'good';
+      best.vel = vel; best.held = held;
+      // Dynamics: accents must be hit hard, ghost notes soft. A right note with the wrong dynamic scores as Good.
+      let dyn = null;
+      if ($('dynOn').checked && (best.acc || best.ghost)) {
+        stats.dynTotal++;
+        if (best.acc && vel < (+$('dynAcc').value || 100)) dyn = 'soft';
+        else if (!best.acc && best.ghost && (kb ? vel >= 120 : vel > (+$('dynGhost').value || 60))) dyn = 'loud';
+        best.dyn = dyn || 'ok';
+        if (dyn) { if (best.state === 'perfect') best.state = 'good'; } else stats.dynOk++;
+      }
       stats[best.state]++;
       stats.combo++; stats.best = Math.max(stats.best, stats.combo);
       stats.score += (best.state === 'perfect' ? 100 : 50) * (1 + Math.floor(stats.combo / 10) * 0.5);
-      stats.dts.push(best.dt * 1000);
-      effects.push({ lane, t0: performance.now(), kind: best.state, dt: best.dt });
+      if (!held) stats.dts.push(best.dt * 1000);
+      effects.push({ lane, t0: performance.now(), kind: best.state, dt: best.dt, dyn });
     } else {
       stats.extra++;
       effects.push({ lane, t0: performance.now(), kind: 'extra' });
@@ -2603,7 +2740,7 @@ function midiToSong(mid, name, opts = {}) {
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.repeat) return;
     const i = lanes.findIndex(l => l.key === e.key.toLowerCase());
-    if (i >= 0) { e.preventDefault(); onHit(i); }
+    if (i >= 0) { e.preventDefault(); onHit(i, e.shiftKey ? 127 : 90, null, true); }
     if (e.key === 'Enter') { e.preventDefault(); startBtn.onclick(); }
   });
 
@@ -2637,7 +2774,7 @@ function midiToSong(mid, name, opts = {}) {
     $('sAcc').textContent = judged ? Math.round(100 * (stats.perfect + stats.good * 0.5) / judged) + '%' : '–';
     const avg = stats.dts.length ? stats.dts.reduce((a, b) => a + b, 0) / stats.dts.length : null;
     $('sTiming').textContent = avg === null ? '–' : (avg > 0 ? '+' : '') + Math.round(avg);
-    $('sBreakdown').innerHTML = [['Perfect', stats.perfect, 'var(--good)'], ['Good', stats.good, 'var(--ok)'], ['Miss', stats.miss, 'var(--bad)'], ['Extra', stats.extra, 'var(--faint)']].map(([k, v, c]) => `<span class="chip"><i style="background:${c}"></i>${k} <b>${v}</b></span>`).join('');
+    $('sBreakdown').innerHTML = [['Perfect', stats.perfect, 'var(--good)'], ['Good', stats.good, 'var(--ok)'], ['Miss', stats.miss, 'var(--bad)'], ['Extra', stats.extra, 'var(--faint)']].concat(stats.dynTotal ? [['Dynamics', `${stats.dynOk}/${stats.dynTotal}`, 'var(--accent)']] : []).map(([k, v, c]) => `<span class="chip"><i style="background:${c}"></i>${k} <b>${v}</b></span>`).join('');
   }
   resetStats();
   play = buildPlay();
@@ -2649,6 +2786,10 @@ function midiToSong(mid, name, opts = {}) {
     const horizon = t + AHEAD;
     const clickOn = $('clickOn').checked, hear = play.drill ? $(mode === 'course' ? 'hearCourse' : 'hearDrill').checked : $('hearDrums').checked;
     const late = (x) => x < t - 0.03; // skip anything already in the past
+    if (play.wait) { // wait mode: only the count-in clicks (the timeline pauses, so nothing else can be pre-scheduled)
+      while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) { const b = play.beats[schedIdx.beats++]; if (b.countIn && !late(b.t)) scheduleClick(startAt + b.t, b.down); }
+      return;
+    }
     while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) {
       const b = play.beats[schedIdx.beats++];
       if (((clickOn && !b.mute) || b.countIn) && !late(b.t)) scheduleClick(startAt + b.t, b.down);
@@ -2717,6 +2858,11 @@ function midiToSong(mid, name, opts = {}) {
     const staffH = $('showNotation').checked ? Math.round(Math.min(190, Math.max(140, Hfull * 0.24))) : 0;
     const H = Hfull - staffH;
     const speed = +$('speed').value; // px per second
+    if (running && play.wait) { // hold the highway at the next note until it's hit
+      const ns = play.notes, ta = now() - startAt; let nx = null;
+      for (let k = play.cur || 0; k < ns.length; k++) if (ns[k].state === 'pending') { nx = ns[k]; break; }
+      if (nx && ta >= nx.t) { startAt += ta - nx.t; play.holding = true; play.holdT = nx.t; } else play.holding = false;
+    }
     const t = running ? visualNow(pms) - startAt : 0;
     const boxHalf = Math.max(14, WIN_GOOD * speed), perfHalf = Math.max(6, WIN_PERFECT * speed);
     const hitY = H - Math.max(90, boxHalf + 52);
@@ -2851,11 +2997,24 @@ function midiToSong(mid, name, opts = {}) {
       try { ctx.letterSpacing = '1px'; } catch (er) {}
       let label = e.kind.toUpperCase();
       if (e.kind === 'good') label = e.dt < 0 ? 'EARLY' : 'LATE';
+      if (e.dyn) { label = e.dyn === 'soft' ? 'HIT HARDER' : 'TOO LOUD'; ctx.fillStyle = '#a6b1ff'; }
       ctx.fillText(label, lx, hitY - boxHalf - 12 - a * 26);
       try { ctx.letterSpacing = '0px'; } catch (er) {}
       ctx.globalAlpha = 1;
     }
 
+    // Wait mode: show which drums it's waiting for
+    if (running && play.wait && play.holding) {
+      const pulse = 0.55 + 0.45 * Math.sin(nowMs / 140);
+      for (const n of play.notes) {
+        if (n.t > play.holdT + 0.03) break;
+        if (n.state !== 'pending') continue;
+        ctx.strokeStyle = hexA(lanes[n.lane].color, pulse); ctx.lineWidth = 3;
+        roundRect(x0 + n.lane * laneW + 3, hitY - boxHalf - 4, laneW - 6, boxHalf * 2 + 8, 12); ctx.stroke();
+      }
+      ctx.fillStyle = '#c9cdd6'; ctx.font = `700 12px ${UIF}`; ctx.textAlign = 'center';
+      ctx.fillText('WAITING FOR YOU', W / 2, hitY - boxHalf - 34);
+    }
     // Progress bar
     if (running && play.end > 0 && isFinite(play.end)) {
       ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(x0, 0, hwW, 3);
