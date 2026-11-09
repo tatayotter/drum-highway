@@ -22,6 +22,10 @@ Everything you load (MIDI library, drum samples, backing audio, settings) stays 
 - **Hi-hat:** open and closed hi-hat are scored (Q on the keyboard plays an open hi-hat). Kit setup has an optional hi-hat pedal lane (key V) for the foot "chick" notes.
 - **Dynamics:** accents must be hit hard and ghost notes softly. You can set the velocity limits for your kit. On the keyboard, hold Shift to play an accent.
 
+## Course
+
+Graded lessons from Debut to Grade 5, each grade ending in an exam (Pass, Merit or Distinction) and with original songs as grade pieces. Every lesson has **Watch first** (the app plays it for you), **Learn it** (wait mode) and **Play it**, plus tips. Lessons earn up to three stars: ★ pass at a slower practice tempo, ★★ pass at full tempo, ★★★ 95% at full tempo. **Today's practice** suggests a warm-up, your next lesson and a review each day.
+
 ## Songs that come with the app
 
 **Drum Highway originals:** 12 songs written for this app, built in, from Beginner to Advanced (rock, disco, ballad, funk, blues shuffle, tribal toms, punk, linear funk, 16th-note kick). Each one has a bass, chord and melody backing part and teaches one skill. Pick them at the top of the Song list. They are free to share with the app.

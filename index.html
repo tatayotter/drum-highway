@@ -153,6 +153,14 @@
   .lesson .kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
   .lesson h3 { margin: 3px 0 6px; font-size: 16px; }
   .lesson p { margin: 0 0 8px; color: #c9cdd6; font-size: 12.5px; }
+  .lesson .tips { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; } .lesson .tips li { margin: 2px 0; }
+  .csteps { margin-top: 10px; } .pill.stars { color: var(--ok); letter-spacing: 1px; }
+  .plan { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .plan .kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .pstep { display: grid; grid-template-columns: 22px 64px 1fr; gap: 8px; align-items: center; height: auto; padding: 7px 8px; text-align: left; background: var(--surface); }
+  .pstep span { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); font-size: 11px; font-weight: 700; }
+  .pstep b { font-size: 12px; } .pstep em { font-style: normal; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pstep.done span { background: var(--good); color: #062; } .pstep.cur { border-color: var(--accent); }
   .req { display: flex; gap: 6px; flex-wrap: wrap; }
   .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 20px; background: var(--bg); border: 1px solid var(--line-2); color: var(--muted); }
   .pill.ok { color: var(--good); border-color: rgba(61,220,151,.4); }
@@ -363,9 +371,10 @@
           <div class="pinfo"><select id="pSel" title="Switch player"></select><small id="pLevel"></small></div>
           <button id="pNew" class="ghost small" title="Add a player">+ New</button>
         </div>
+        <div class="plan" id="cPlan" hidden></div>
         <div class="lesson" id="cCard"></div>
         <div class="btns"><button id="cNext" class="primary" hidden><span class="t">Next lesson</span></button></div>
-        <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the lesson (demo)</label></div></div>
+        <div class="rows"><div class="row"><label class="sw"><input id="hearCourse" type="checkbox"> Hear the drum part while I play</label></div></div>
         <h2>Your course</h2>
         <div class="grades" id="cGrades"></div>
         <div class="rows"><div class="row"><label class="sw"><input id="cUnlock" type="checkbox"> Unlock every grade (for experienced players)</label></div></div>
@@ -897,39 +906,48 @@ function midiToSong(mid, name, opts = {}) {
     { name: 'Debut', title: 'First steps', goal: 'Keep a steady pulse, play even 8th notes and your first rock beat.',
       lessons: [[TM, 'Quarter-note pulse (gap click)', 70], [R, 'Single strokes (8ths)', 70], [G, 'Basic rock (quarter hats)', 70], [G, '8th-note rock', 70],
         [TO, 'Snare to tom 1 (8ths)', 70], [F, 'Quarter-note crash landing', 70], [TM, '8th notes (gap click)', 70]],
+      songs: [0],
       exam: [[G, '8th-note rock', 80], [G, '8th rock with fills', 70], [R, 'Single strokes (8ths)', 90]] },
     { name: 'Grade 1', title: 'Rock foundations', goal: '16th-note hands, your first rudiments, fills around the toms and the shuffle feel.',
       lessons: [[R, 'Single strokes (16ths)', 70], [R, 'Double strokes (16ths)', 60], [R, 'Single paradiddle', 70], [K, 'Kick 8ths under quarter hats', 80],
         [K, 'Open hat on the "&" of 4', 80], [F, '8th-note tom fill', 80], [TO, 'Around the toms (8ths)', 80], [G, 'Motown (snare on every beat)', 110],
         [TS, 'Triplet singles', 70], [TS, 'Basic shuffle', 80]],
+      songs: [1, 3],
       exam: [[G, '8th rock with fills', 90], [R, 'Single paradiddle', 90], [TS, 'Basic shuffle', 90]] },
     { name: 'Grade 2', title: 'Grooves & dynamics', goal: '16th hats, half-time, ghost notes and fills that start off the beat.',
       lessons: [[G, '16th-note hats', 70], [G, 'Half-time', 80], [K, 'Kick variations', 80], [R, 'Accents & ghost notes', 70], [F, 'Fill starting on the "&"', 80],
         [F, 'One-beat fill', 80], [TM, '16th notes (gap click)', 80], [G, 'Disco (open hat on the &)', 110], [SK, 'Singles fill (bar 4)', 80],
         [TS, 'Accent the beat in triplets', 80], [TS, '12/8 slow blues', 70]],
+      songs: [2, 4],
       exam: [[G, 'Ride groove', 90], [F, '16th tom tour', 80], [G, 'Disco (open hat on the &)', 120]] },
     { name: 'Grade 3', title: 'Rudiments on the kit', goal: 'Rolls and paradiddle variations, reggae and train beats, and triplet fills.',
       lessons: [[R, 'Five-stroke roll', 70], [R, 'Reverse paradiddle', 80], [R, 'Paradiddle inversions', 70], [K, 'Kick doubles', 80], [G, 'One-drop (reggae)', 80],
         [G, 'Train beat', 130], [SK, 'Paradiddle fill (bar 4)', 80], [TO, 'Around the toms (16ths)', 90], [TM, 'Click on 2 & 4 only', 90],
         [TS, 'Shuffle with a triplet fill', 90], [TS, 'Triplet doubles', 80]],
+      songs: [5, 7],
       exam: [[SK, 'Paradiddle groove', 90], [F, 'Snare build-up', 90], [TS, 'Shuffle with ghost notes', 100]] },
     { name: 'Grade 4', title: 'Funk & feel', goal: 'Six-stroke and double paradiddles, ghost-note and linear grooves, groups of three.',
       lessons: [[R, 'Six-stroke roll', 80], [R, 'Double paradiddle', 80], [R, 'Paradiddle-diddle', 80], [K, 'Kick on the "e" and "a"', 80], [G, 'Ghost-note groove', 80],
         [G, 'Linear groove', 80], [F, 'Groups-of-three fill', 80], [TM, 'Offbeat 8ths only', 90], [SK, 'Six-stroke roll: crash accents', 80],
         [TS, 'Paradiddle-diddle', 90], [SK, 'Doubles down the toms (fill)', 90]],
+      songs: [6, 8],
       exam: [[G, 'Funk 16ths', 90], [F, 'Hands & kick fill', 80], [TS, 'Half-time shuffle (Purdie style)', 80]] },
     { name: 'Grade 5', title: 'Advanced control', goal: 'Seven-stroke rolls, ostinatos, odd groupings and Bonham-style triplets.',
       lessons: [[R, 'Seven-stroke roll', 80], [R, 'Single-double mix', 90], [R, 'Accents in 3s', 80], [K, 'Kick 16th bursts', 80], [K, 'Ostinato: ride + kick', 75],
         [G, 'Bossa nova (straight)', 110], [TM, '"e" and "a" only', 80], [TM, 'Gap click 16ths with accents in 3s', 80], [TO, 'Sixes around the kit', 80],
         [TS, 'Bonham triplets', 90], [TS, 'Triplets around the kit', 80], [SK, 'Paradiddle-diddle fill (bar 4)', 90]],
+      songs: [9, 10, 11],
       exam: [[G, 'Funk 16ths', 105], [G, 'Linear groove', 100], [TS, 'Bonham triplets', 100]] },
   ];
   const LESSON_NEED = 0.85, EXAM_NEED = 0.8;
   const COURSE = COURSE_DEF.map((g, gi) => ({ ...g, gi, items: [
     ...g.lessons.map(([cat, name, bpm], i) => ({ id: `${gi}:${i}`, gi, n: i + 1, exam: false, cat, name, bpm, bars: 8, need: LESSON_NEED })),
+    // grade songs: original songs, resolved when played (ORIGINALS is defined further down)
+    ...(g.songs || []).map((si, i) => ({ id: `${gi}:s${i}`, gi, n: i + 1, exam: false, song: si, cat: 'Song', need: 0.8,
+      get name() { return ORIGINALS[si].title; }, get bpm() { return ORIGINALS[si].bpm; }, get bars() { return 'Full song'; } })),
     ...g.exam.map(([cat, name, bpm], i) => ({ id: `${gi}:e${i}`, gi, n: i + 1, exam: true, cat, name, bpm, bars: 16, need: EXAM_NEED })),
   ] }));
-  COURSE.forEach(g => g.items.forEach(L => { L.drill = DRILLS.find(d => d.cat === L.cat && d.name === L.name); if (!L.drill) console.warn('Course: missing drill', L.cat, L.name); }));
+  COURSE.forEach(g => g.items.forEach(L => { if (L.song !== undefined) return; L.drill = DRILLS.find(d => d.cat === L.cat && d.name === L.name); if (!L.drill) console.warn('Course: missing drill', L.cat, L.name); }));
   // ---- Player profiles: each has its own course progress and placement ----
   const PROF_KEY = 'drumHighway.profiles.v1', COURSE_KEY = 'drumHighway.course.v1';
   let profs = { current: null, list: {} };
@@ -944,6 +962,53 @@ function midiToSong(mid, name, opts = {}) {
   const findItem = (id) => { for (const g of COURSE) for (const L of g.items) if (L.id === id) return L; return null; };
   const passed = (L) => (cProg.best[L.id] || 0) >= L.need;
   const gradeLessons = (g) => g.items.filter(L => !L.exam), gradeExam = (g) => g.items.filter(L => L.exam);
+  // Stars: ★ pass at 70%+ tempo, ★★ pass at full tempo, ★★★ 95%+ at full tempo
+  const starsOf = (L) => Math.max((cProg.stars || {})[L.id] || 0, (cProg.best[L.id] || 0) >= 0.95 ? 3 : passed(L) ? 2 : 0);
+  const starStr = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
+  function courseSong(L) { const k = 'orig:' + L.song; if (!midiSongs[k]) { const sg = buildOriginal(L.song); sg.key = k; sg.firstBar = 1; midiSongs[k] = sg; } return midiSongs[k]; }
+  const TIPS = {
+    Rudiments: ['Start slow enough to play every stroke at the same height.', 'Accents come from a higher stick, not a harder squeeze. Keep the other notes low.'],
+    Grooves: ['Lock the kick and snare to the click first, then let the hi-hat ride on top.', 'Count out loud ("1 & 2 &") until the groove plays itself.'],
+    Fills: ['Know where the fill ends: land on beat 1 with a crash and the kick together.', 'Keep the tempo in the fill. Most fills rush, so think "steady" as you move.'],
+    'Kick & independence': ['Keep your hands exactly the same while the foot changes.', 'Play just the hands and kick together slowly before adding the snare.'],
+    Timing: ['When the click goes silent, keep counting in your head and don’t speed up.', 'Your average timing in the report shows if you rush or drag.'],
+    Toms: ['Move from the shoulder and arm, not just the wrists, so you reach each drum in time.', 'Play the sticking on the snare first, then spread it to the toms.'],
+    'Sticking on the kit': ['Learn the sticking on the snare, then move only the hand the lesson moves.', 'Say the sticking out loud (R L R R) while you play.'],
+    'Triplets & shuffles': ['Count "1-trip-let 2-trip-let". Every triplet note is evenly spaced.', 'In a shuffle the middle triplet is silent: "1 - let 2 - let".'],
+    Song: ['Use Watch first to hear the whole song, then play along.', 'Too fast? Pick a slower practice tempo to earn your first star, then speed up.'],
+  };
+  // ---- Today's practice: warm-up, the next lesson, and a review, new each day ----
+  function todayPlan() {
+    const d = dayKey();
+    if (cProg.plan && cProg.plan.d === d && cProg.plan.ids.every(findItem)) return cProg.plan;
+    const open = COURSE.flatMap(g => gradeOpen(g) ? g.items.filter(L => itemOpen(L) && !L.exam) : []);
+    const seed = [...d].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
+    const learn = nextIn(COURSE[(findItem(cProg.pos) || COURSE[0].items[0]).gi]);
+    const warmPool = open.filter(L => L.cat === 'Rudiments' && L !== learn);
+    const warm = warmPool.length ? warmPool[seed % warmPool.length] : null;
+    const reviewPool = open.filter(L => passed(L) && L !== learn && L !== warm).sort((a, b) => starsOf(a) - starsOf(b) || ((cProg.last || {})[a.id] || 0) - ((cProg.last || {})[b.id] || 0));
+    const review = reviewPool[0] || open.find(L => L.song !== undefined && L !== learn) || null;
+    const ids = [warm, learn, review].filter(Boolean).map(L => L.id).filter((x, i, a) => a.indexOf(x) === i);
+    cProg.plan = { d, ids, done: ids.map(() => false) }; saveCourse();
+    return cProg.plan;
+  }
+  function renderPlan() {
+    if (placement || !profs.current) { $('cPlan').hidden = true; return; }
+    const P = todayPlan(), labels = ['Warm-up', 'New', 'Review'];
+    const roles = P.ids.length === 3 ? labels : P.ids.length === 2 ? ['Warm-up', 'New'] : ['New'];
+    const all = P.done.every(Boolean);
+    $('cPlan').hidden = false;
+    $('cPlan').innerHTML = `<div class="kicker">Today’s practice${all ? ' · done ✓' : ` · ${P.done.filter(Boolean).length}/${P.ids.length}`}</div>` +
+      P.ids.map((id, i) => { const L = findItem(id); return `<button class="pstep${P.done[i] ? ' done' : ''}${id === cProg.pos ? ' cur' : ''}" data-id="${id}"><span>${P.done[i] ? '✓' : i + 1}</span><b>${roles[i] || 'Review'}</b><em></em></button>`; }).join('');
+    $('cPlan').querySelectorAll('.pstep').forEach((b, i) => { b.querySelector('em').textContent = findItem(P.ids[i]).name; b.onclick = () => selectLesson(b.dataset.id); });
+  }
+  function markPlanDone(id) {
+    const P = cProg.plan; if (!P || P.d !== dayKey()) return '';
+    const i = P.ids.indexOf(id); if (i < 0 || P.done[i]) return '';
+    P.done[i] = true; saveCourse();
+    const nx = P.ids.find((x, k) => !P.done[k]);
+    return nx ? ` Next in today’s practice: ${findItem(nx).name}.` : ' 🎉 Today’s practice is done!';
+  }
   const examsDone = (g) => gradeExam(g).every(passed);
   const gradeDone = (g) => examsDone(g) || g.gi < (cProg.placed || 0);
   function gradeMark(g) {
@@ -969,15 +1034,22 @@ function midiToSong(mid, name, opts = {}) {
   function courseResult(acc) {
     if (placement) return placementResult(acc);
     const L = curLesson(), pct = Math.round(acc * 100), tempo = +$('cTempo').value;
-    if (tempo < 100) return acc >= L.need ? `${pct}% at ${tempo}% tempo. Now try it faster: passing counts at full tempo.` : `${pct}% at ${tempo}% tempo. Keep going!`;
+    (cProg.last = cProg.last || {})[L.id] = Date.now();
+    const earned = acc >= L.need ? (tempo >= 100 ? (acc >= 0.95 ? 3 : 2) : tempo >= 70 ? 1 : 0) : 0;
+    const before = starsOf(L);
+    if (earned > ((cProg.stars = cProg.stars || {})[L.id] || 0)) cProg.stars[L.id] = earned;
+    saveCourse();
+    const planMsg = markPlanDone(L.id);
+    const starMsg = !L.exam && earned > before ? ` ${starStr(earned)} New star${earned - before > 1 ? 's' : ''}!` : '';
+    if (tempo < 100) { renderCourse(); return (acc >= L.need ? `${pct}% at ${tempo}% tempo.${starMsg} Now try it faster: ★★ counts at full tempo.` : `${pct}% at ${tempo}% tempo. Keep going!`) + planMsg; }
     const g = COURSE[L.gi], wasDone = gradeDone(g);
     if (acc > (cProg.best[L.id] || 0)) { cProg.best[L.id] = acc; saveCourse(); }
     let msg;
     if (acc < L.need) msg = `${pct}%: you need ${Math.round(L.need * 100)}% to pass. Try again, or practise slower first.`;
     else if (!wasDone && gradeDone(g)) msg = `🎓 ${g.name} passed with ${gradeMark(g)}! ${COURSE[g.gi + 1] ? COURSE[g.gi + 1].name + ' is open.' : 'You finished the course!'}`;
-    else msg = L.exam ? `✓ Exam piece passed with ${pct}%!` : `✓ Lesson passed with ${pct}%!`;
+    else msg = L.exam ? `✓ Exam piece passed with ${pct}%!` : `✓ ${L.song !== undefined ? 'Song' : 'Lesson'} passed with ${pct}%!` + (earned < 3 ? ' 95% earns ★★★.' : '');
     renderCourse();
-    return msg;
+    return msg + starMsg + planMsg;
   }
   function renderCourse() {
     if (!profs.current && $('pModal').hidden) openProfileModal(true);
@@ -991,21 +1063,31 @@ function midiToSong(mid, name, opts = {}) {
     const ls = $('cLesson'); ls.innerHTML = '';
     const og1 = document.createElement('optgroup'); og1.label = 'Lessons';
     const og2 = document.createElement('optgroup'); og2.label = 'Exam';
+    const og3 = document.createElement('optgroup'); og3.label = 'Songs';
     for (const it of g.items) {
-      const st = passed(it) ? '✓' : itemOpen(it) ? '•' : '🔒';
-      const o = new Option(`${st} ${it.exam ? 'Exam ' + it.n : it.n + '.'} ${it.name}`, it.id); o.disabled = !itemOpen(it);
-      (it.exam ? og2 : og1).appendChild(o);
+      const st = !itemOpen(it) ? '🔒' : it.exam ? (passed(it) ? '✓' : '•') : starStr(starsOf(it));
+      const o = new Option(`${st} ${it.exam ? 'Exam ' + it.n : it.song !== undefined ? '♪' : it.n + '.'} ${it.name}`, it.id); o.disabled = !itemOpen(it);
+      (it.exam ? og2 : it.song !== undefined ? og3 : og1).appendChild(o);
     }
-    ls.append(og1, og2); ls.value = L.id;
+    ls.append(og1); if (og3.children.length) ls.append(og3); ls.append(og2); ls.value = L.id;
     $('cBpm').textContent = courseBpm() + (+$('cTempo').value < 100 ? ` / ${L.bpm}` : '');
     const best = cProg.best[L.id];
-    const total = g.items.filter(x => !x.exam).length;
-    $('cCard').innerHTML = `<div class="kicker">${g.name} · ${L.exam ? `Exam piece ${L.n} of 3` : `Lesson ${L.n} of ${total}`}</div>
+    const total = g.items.filter(x => !x.exam && x.song === undefined).length, isSong = L.song !== undefined, stars = starsOf(L);
+    $('cCard').innerHTML = `<div class="kicker">${g.name} · ${L.exam ? `Exam piece ${L.n} of 3` : isSong ? `Grade song ${L.n}` : `Lesson ${L.n} of ${total}`}</div>
       <h3></h3><p class="d"></p>
-      <div class="req"><span class="pill ${L.exam ? 'exam' : ''}">Pass: ${Math.round(L.need * 100)}% at ${L.bpm} BPM</span><span class="pill">${L.bars} bars</span>
-      <span class="pill ${passed(L) ? 'ok' : ''}">${best ? (passed(L) ? '✓ ' : '') + 'Best ' + Math.round(best * 100) + '%' : 'Not played yet'}</span></div>`;
+      <div class="req"><span class="pill ${L.exam ? 'exam' : ''}">Pass: ${Math.round(L.need * 100)}% at ${L.bpm} BPM</span><span class="pill">${isSong ? 'Full song' : L.bars + ' bars'}</span>
+      ${L.exam ? '' : `<span class="pill stars ${stars ? 'ok' : ''}" title="★ pass at 70%+ tempo · ★★ pass at full tempo · ★★★ 95% at full tempo">${starStr(stars)}</span>`}
+      <span class="pill ${passed(L) ? 'ok' : ''}">${best ? (passed(L) ? '✓ ' : '') + 'Best ' + Math.round(best * 100) + '%' : 'Not played yet'}</span></div>
+      <ul class="tips"></ul>
+      <div class="btns csteps"><button id="cWatch" class="small"><span class="t">▶ Watch first</span></button><button id="cLearn" class="small"><span class="t">Learn it (wait mode)</span></button><button id="cPlay" class="small primary"><span class="t">Play it</span></button></div>`;
     $('cCard').querySelector('h3').textContent = L.name;
-    $('cCard').querySelector('.d').textContent = L.drill ? L.drill.desc : '';
+    $('cCard').querySelector('.d').textContent = isSong ? ORIGINALS[L.song].why : L.drill ? L.drill.desc : '';
+    const tips = (TIPS[L.cat] || []).slice(0, 2), ul = $('cCard').querySelector('.tips');
+    tips.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+    $('cWatch').onclick = () => { if (running) stop(); start({ demo: true }); };
+    $('cLearn').onclick = () => { if (running) stop(); start({ wait: true }); };
+    $('cPlay').onclick = () => { if (running) stop(); start(); };
+    renderPlan();
     const nx = passed(L) ? nextIn(g) : null, nextGrade = gradeDone(g) && COURSE[g.gi + 1];
     $('cNext').hidden = !(nx && nx !== L) && !nextGrade;
     btnText('cNext', nx && nx !== L ? (nx.exam ? 'Go to the exam' : 'Next lesson') : nextGrade ? `Start ${nextGrade.name}` : 'Next');
@@ -1070,7 +1152,7 @@ function midiToSong(mid, name, opts = {}) {
   function renderPlacement() {
     const P = PLACE[placement.step];
     $('cGrade').disabled = $('cLesson').disabled = $('cTempo').disabled = true;
-    $('cBpm').textContent = P.bpm;
+    $('cBpm').textContent = P.bpm; $('cPlan').hidden = true;
     const done = placement.results.filter(x => x !== undefined);
     $('cCard').innerHTML = `<div class="kicker">Placement test · piece ${placement.step + 1} of up to ${PLACE.length}</div><h3></h3><p class="d"></p>
       <div class="req"><span class="pill exam">${COURSE[P.gi].name} level</span><span class="pill">${P.bars} bars at ${P.bpm} BPM</span>
@@ -1464,7 +1546,7 @@ function midiToSong(mid, name, opts = {}) {
   function currentDrill() { return DRILLS.find(d => d.cat === $('drillCat').value && d.name === $('drillSel').value) || DRILLS.find(d => d.cat === $('drillCat').value) || DRILLS[0]; }
   function currentSource() {
     if (mode === 'drills') return { kind: 'pattern', pat: currentDrill() };
-    if (mode === 'course') { const L = curLesson(); return L && L.drill ? { kind: 'pattern', pat: L.drill } : { kind: 'none' }; }
+    if (mode === 'course') { const L = curLesson(); return L && L.song !== undefined ? { kind: 'midi', song: courseSong(L) } : L && L.drill ? { kind: 'pattern', pat: L.drill } : { kind: 'none' }; }
     return midiSongs[patternSel.value] ? { kind: 'midi', song: midiSongs[patternSel.value] } : { kind: 'none' };
   }
 
@@ -1529,7 +1611,7 @@ function midiToSong(mid, name, opts = {}) {
   function buildPlay() { const p = buildPlayRaw(); p.bars = buildBars(p); return p; }
   function buildPlayRaw() {
     const src = currentSource();
-    const startBar = Math.max(1, +$('startBar').value || 1);
+    const startBar = mode === 'course' ? 1 : Math.max(1, +$('startBar').value || 1);
     if (src.kind === 'none') return { notes: [], drums: [], backing: [], beats: [], countIn: 0, end: 0 };
     if (src.kind === 'pattern') {
       const bpm = mode === 'course' ? courseBpm() : drillBpm(), beat = 60 / bpm, lead = COUNT_IN_BEATS * beat;
@@ -1540,9 +1622,9 @@ function midiToSong(mid, name, opts = {}) {
       p.end = loop ? Infinity : p.tEnd + 0.6;
       return p;
     }
-    const s = src.song, scale = 100 / (+$('tempoPct').value || 100);
-    const drumCh = +$('drumCh').value;
-    if ($('loopOn').checked) return buildSongLoop(s, startBar, scale, drumCh);
+    const s = src.song, scale = 100 / ((mode === 'course' ? +$('cTempo').value : +$('tempoPct').value) || 100);
+    const drumCh = mode === 'course' ? s.drumCh : +$('drumCh').value;
+    if ($('loopOn').checked && mode !== 'course') return buildSongLoop(s, startBar, scale, drumCh);
     const from = s.barStarts[Math.min(startBar - 1, s.barStarts.length - 1)] || 0;
     // count-in: 4 beats at the tempo where we start
     const bIdx = Math.max(0, s.beats.findIndex(b => b.t >= from - 1e-6));
@@ -1631,7 +1713,8 @@ function midiToSong(mid, name, opts = {}) {
   refreshLoopUI();
 
   const startBtn = $('startBtn');
-  function start() {
+  function start(opts = {}) {
+    if (opts && opts.type) opts = {}; // called as an event handler
     if (currentSource().kind === 'none') { $('songInfo').textContent = 'Pick a song first: use “Set MIDI library” or “Load one song”, or switch to Drills.'; return; }
     runId++;
     ensureAudio();
@@ -1639,7 +1722,8 @@ function midiToSong(mid, name, opts = {}) {
     play.startBar = Math.max(1, +$('startBar').value || 1);
     play.wallStart = performance.now();
     play.hasOpen = play.notes.some(n => n.open) || !!play.loop;
-    if ($('waitOn').checked && mode !== 'course') { play.wait = true; play.audio = null; }
+    if (opts.wait || ($('waitOn').checked && mode !== 'course' && !opts.demo)) { play.wait = true; play.audio = null; }
+    if (opts.demo) { play.demo = true; play.recorded = true; }
     $('rModal').hidden = true;
     resetStats();
     effects = [];
@@ -1737,7 +1821,9 @@ function midiToSong(mid, name, opts = {}) {
     stop();
     const judged = stats.perfect + stats.good + stats.miss;
     const acc = judged ? (stats.perfect + stats.good * 0.5) / judged : 0;
-    if (mode === 'course') { trainerMsg = courseResult(acc); return; }
+    if (play.demo) { trainerMsg = 'That’s how it goes. Your turn: press Start (or Learn it to go note by note).'; return; }
+    if (mode === 'course' && play.wait) { trainerMsg = 'Got the notes? Now press Start to play it in time.'; showReport(); return; }
+    if (mode === 'course') { trainerMsg = courseResult(acc); if (!placement) showReport(); return; }
     if (mode !== 'drills' || !$('trainOn').checked || play.wait) { trainerMsg = ''; showReport(); return; }
     const bpm = +$('bpm').value, target = +$('trainTarget').value || bpm, step = +$('trainStep').value || 5;
     const pct = Math.round(acc * 100);
@@ -1763,7 +1849,7 @@ function midiToSong(mid, name, opts = {}) {
 
   // ---------- After-run report ----------
   function showReport() {
-    if (!$('reportOn').checked || !play || mode === 'course') return;
+    if (!$('reportOn').checked || !play || play.demo || placement) return;
     const judgedNotes = play.notes.filter(n => n.state !== 'pending');
     if (judgedNotes.length < 8) return;
     const credit = (n) => n.state === 'perfect' ? 1 : n.state === 'good' ? 0.5 : 0;
@@ -1818,11 +1904,12 @@ function midiToSong(mid, name, opts = {}) {
     for (const n of judgedNotes) { const b = barOf(n.t); if (b === null) continue; if (!byBar.has(b)) byBar.set(b, []); byBar.get(b).push(n); }
     const worst = [...byBar].map(([b, ns]) => ({ b, acc: accOf(ns) })).filter(x => x.acc < 0.85).sort((a, b) => a.acc - b.acc).slice(0, 4);
     $('rBarsSec').hidden = !worst.length || !!play.drill;
+    const canLoop = mode === 'songs';
     $('rLoop').hidden = true;
     if (worst.length && !play.drill) {
       $('rBarsSec').innerHTML = '<h3>Hardest bars</h3><div class="rbars">' + worst.map(x => `<span>Bar ${x.b} · ${Math.round(x.acc * 100)}%</span>`).join('') + '</div>';
       const s = currentSource().song, A = worst[0].b, B = Math.min(A + 1, s ? s.barStarts.length : A + 1);
-      $('rLoop').hidden = false; btnText('rLoop', `Loop bars ${A}–${B} at 70%`);
+      $('rLoop').hidden = !canLoop; btnText('rLoop', `Loop bars ${A}–${B} at 70%`);
       $('rLoop').onclick = () => {
         $('rModal').hidden = true;
         $('loopOn').checked = true; $('startBar').value = A; $('loopTo').value = B; $('tempoPct').value = '70'; if (+$('loopStep').value === 0) $('loopStep').value = '5';
@@ -3109,7 +3196,7 @@ function midiToSong(mid, name, opts = {}) {
   function scheduleAudio(t) {
     if (!ac) return;
     const horizon = t + AHEAD;
-    const clickOn = $('clickOn').checked, hear = play.drill ? $(mode === 'course' ? 'hearCourse' : 'hearDrill').checked : $('hearDrums').checked;
+    const clickOn = $('clickOn').checked, hear = play.demo || (play.drill ? $(mode === 'course' ? 'hearCourse' : 'hearDrill').checked : $('hearDrums').checked);
     const late = (x) => x < t - 0.03; // skip anything already in the past
     if (play.wait) { // wait mode: only the count-in clicks (the timeline pauses, so nothing else can be pre-scheduled)
       while (schedIdx.beats < play.beats.length && play.beats[schedIdx.beats].t < horizon) { const b = play.beats[schedIdx.beats++]; if (b.countIn && !late(b.t)) scheduleClick(startAt + b.t, b.down); }
@@ -3203,6 +3290,7 @@ function midiToSong(mid, name, opts = {}) {
       for (let k = play.cur; k < ns.length; k++) {
         const n = ns[k];
         if (n.t > t) break;
+        if (play.demo && n.state === 'pending') { n.state = 'demo'; laneFlash[n.lane] = performance.now(); continue; }
         if (n.state === 'pending' && t - n.t > WIN_GOOD) { n.state = 'miss'; stats.miss++; stats.combo = 0; effects.push({ lane: n.lane, t0: performance.now(), kind: 'miss' }); renderStats(); }
       }
       if (play.loop) extendLoop(t);
@@ -3266,7 +3354,7 @@ function midiToSong(mid, name, opts = {}) {
     for (let k = running ? play.cur || 0 : 0; k < play.notes.length; k++) {
       const n = play.notes[k];
       if (n.t < tBot - 0.1) continue; if (n.t > tTop + 0.1) break;
-      if (n.state === 'perfect' || n.state === 'good') continue;
+      if (n.state === 'perfect' || n.state === 'good' || n.state === 'demo') continue;
       const y = hitY - (n.t - t) * speed;
       const lane = lanes[n.lane], lx = x0 + n.lane * laneW, col = lane.color;
       const alpha = n.state === 'miss' ? 0.22 : 1;
@@ -3331,6 +3419,7 @@ function midiToSong(mid, name, opts = {}) {
     }
 
     } // end of highway drawing
+    if (running && play.demo) { ctx.fillStyle = '#a6b1ff'; ctx.font = `700 12px ${UIF}`; ctx.textAlign = 'center'; try { ctx.letterSpacing = '1px'; } catch (er) {} ctx.fillText('DEMO · WATCH AND LISTEN', W / 2, 30); try { ctx.letterSpacing = '0px'; } catch (er) {} }
     // Wait mode: show which drums it's waiting for
     if (running && play.wait && play.holding && !pageView) {
       const pulse = 0.55 + 0.45 * Math.sin(nowMs / 140);

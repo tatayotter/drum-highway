@@ -1,5 +1,5 @@
 // Drum Highway offline cache. Bump VERSION whenever index.html changes so installed copies update.
-const VERSION = 'dh-v8';
+const VERSION = 'dh-v9';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
